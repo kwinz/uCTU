@@ -1,5 +1,4 @@
-
-
+#include "glcd.h"
 
 int main (void){
 

@@ -8,8 +8,8 @@ AVRPROG2 := avrprog2
 
 CFLAGS   := -mmcu=atmega1280
 CCFLAGS  := -std=gnu99 -Wall -Wno-main -O2 -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums -pedantic -Werror
-CPPFLAGS := -I.
-LDFLAGS  := -L.
+CPPFLAGS := -I./includes
+LDFLAGS  := -L./libs
 
 SRC_DIR     = ./src
 BUILD_DIR   = ./build
