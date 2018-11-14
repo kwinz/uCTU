@@ -1,2 +1,3 @@
 libs
-*.o
+bin
+build

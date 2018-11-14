@@ -1,5 +1,6 @@
 # Author Markus Krainz
 # Date 2018
+# Some ideas from https://stackoverflow.com/questions/9178285/how-can-makefile-use-separate-directories-for-source-code-and-binaries
 
 CC := avr-gcc
 LD := $(CC)
@@ -10,27 +11,32 @@ CCFLAGS  := -std=gnu99 -Wall -Wno-main -O2 -funsigned-char -funsigned-bitfields 
 CPPFLAGS := -I.
 LDFLAGS  := -L.
 
+SRC_DIR     = ./src
+BUILD_DIR   = ./build
+BIN_DIR     = ./bin
+SRC_LIST = $(wildcard $(SRC_DIR)/*.c)
+OBJ_LIST = $(BUILD_DIR)/$(notdir $(SRC_LIST:.c=.o))
+
 .PHONY: all clean install
 
-SOURCES = $(wildcard *.c)
-OBJECTS = $(SOURCES:.c=.o)
+# edit next line to name build.elf target name
 EXEC = main.elf
-
+# and this if I want to install automatically on all
 all: $(EXEC) install
 
-%.o: %.cpp
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(CCFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-$(EXEC): $(OBJECTS)
-	$(LD) $(CFLAGS) $(LDFLAGS) $(OBJECTS) -o $@
+$(EXEC): $(OBJ_LIST)
+	$(LD) $(CFLAGS) $(LDFLAGS) $(OBJ_LIST) -o $(BIN_DIR)/$@
 
 #$(LD) $(CFLAGS) $(LDFLAGS) -o $@ rand.o -lrandtest
 
 install: $(EXEC)
-	$(AVRPROG2) --flash w:$<
+	$(AVRPROG2) --flash w:$(BIN_DIR)/$<
 
 clean:
-	rm -f main.elf rand.o
+	rm -f $(BIN_DIR)/* $(BUILD_DIR)/*
 
 
 
