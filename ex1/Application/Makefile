@@ -14,11 +14,11 @@ EXEC   = build.elf
 
 CFLAGS   := -mmcu=atmega1280
 CCFLAGS  := -std=gnu99 -Wall -Wno-main -O2 -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums -pedantic -Werror
-CPPFLAGS := -I./includes
+CPPFLAGS := -I./includes -I./src
 LDFLAGS  := -L./libs -lglcd
 
 SOURCES  := $(wildcard $(SRCDIR)/*.c)
-INCLUDES := $(wildcard $(SRCDIR)/*.h)
+#INCLUDES := $(wildcard $(SRCDIR)/*.h)
 OBJECTS  := $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 
 .PHONY: all clean install
