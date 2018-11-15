@@ -1,20 +1,17 @@
 #include "glcd.h"
-#include <stdbool.h>
 #include "rand.h"
+#include "wii_user.h"
+#include <stdbool.h>
 
-void background(){
-    
-}
+void setup() {}
 
-int main (void){
-    glcdInit();
-    xy_point p1 = {5,20}, p2 = {80,80};
+void background() {}
 
-    glcdDrawLine(p1 , p2, &glcdInvertPixel);
+int main(void) {
+  setup();
 
-while (true){
+  while (true) {
     background();
-}
-
-    return 0;
+  }
+  return 0;
 }
