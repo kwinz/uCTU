@@ -1,0 +1,26 @@
+
+USART3
+TXEN3
+
+Port B SPI
+Port D USART1
+Port H USART2
+Port J USART3
+every USART can operate also in SPI mode
+==============================
+
+UDRn – USART I/O Data Register n
+transmit buffer can only be written when the UDREn Flag in the UCSRnA Register is set.
+do not use Read-Modify-Write instructions (SBI and CBI) on this location. Be careful when using bit test instructions (SBIC and SBIS), since these also will change the state of the FIFO.
+
+UCSRnA – USART Control and Status Register A
+7 - receive complete
+6 - transmit complete
+5- data register empty
+4 - frame error
+3 data overrun
+2 - parity error
+1 - double transmission speed
+0 - 
+
+
