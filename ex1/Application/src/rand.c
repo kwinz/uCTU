@@ -8,7 +8,7 @@ const uint16_t poly = 0x80e3;
 uint8_t rand_shift(uint8_t in) {
 
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    uint8_t out = 0;
+    uint8_t out;
     /*
     asm volatile("LDI %OUT, 0" "\n\t"
         "ROR %IN" "\n\t"
@@ -23,7 +23,7 @@ uint8_t rand_shift(uint8_t in) {
     */
 
     // clang-format off
-        asm volatile(
+        asm volatile("LDI %0, 0" "\n\t"
             "ROR %3" "\n\t"
             "ROR 27" "\n\t"
             "ROR 26" "\n\t"
@@ -41,7 +41,7 @@ uint8_t rand_shift(uint8_t in) {
   __builtin_unreachable();
 }
 
-uint8_t rand_shift_c(uint8_t in) {
+uint8_t rand_shift_(uint8_t in) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     uint8_t out = lfsr & 1;
     lfsr >>= 1;
