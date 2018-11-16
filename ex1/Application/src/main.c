@@ -2,12 +2,11 @@
 #include "rand.h"
 #include "tools.h"
 #include "wii_user.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 
 #include <avr/io.h>
-#define F_CPU 16000000UL
-#define FOSC 16000000UL // Clock Speed
 #define BAUD 1000000UL
 #define USART_UBBR_VALUE ((F_CPU / (USART_BAUD << 4)) - 1)
 #include <util/setbaud.h>
@@ -32,20 +31,26 @@ void USART_Init(unsigned int ubrr) {
 }
 
 static void uart_1M(void) {
+  // set UART3 with a baudrate of 1 Mbit/s
+  // page 231 of ATmega1280 manual
+  {
+    const unsigned int ubrr = 0;
+    UBRR3H = (unsigned char)(ubrr >> 8);
+    UBRR3L = (unsigned char)ubrr;
+    // clear U2X3
+    UCSR3A &= ~(1 << U2X3);
+  }
 
   /*
-  UART3 with a baudrate of 1 Mbit/s, 8
+  , 8
   data bits, no parity, 1 stop bit (i.e., 8N1), and hardware flow control (RTS/CTS) in both
   directions
   */
 
-  UBRR3H = UBRRH_VALUE;
-  UBRR3L = UBRRL_VALUE;
-#if USE_2X
-  UCSR3A |= (1 << U2X3);
-#else
-  UCSR3A &= ~(1 << U2X3);
-#endif
+  /* tx/rx enable */
+  // UCSRB = _BV(TXEN) | _BV(RXEN);
+
+  // /usr/share/doc/avr-libc/examples/stdiodemo/
 }
 
 void USART_Transmit(unsigned char data) {
@@ -59,8 +64,18 @@ void USART_Transmit(unsigned char data) {
 void setup() {
   DDRA = 0xFF;
   PORTA = 0xAF;
+  busyWaitMS(1000);
+  PORTA = 0xFF;
+  busyWaitMS(1000);
+  PORTA = 0xAF;
+  busyWaitMS(1000);
+  PORTA = 0xFF;
+  busyWaitMS(1000);
+  PORTA = 0xAF;
+  busyWaitMS(1000);
+  PORTA = 0xFF;
 
-  USART_Init(MYUBRR);
+  // USART_Init(MYUBRR);
   uart_1M();
 
   uint8_t wii = 1;
