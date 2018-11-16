@@ -98,17 +98,20 @@ uint8_t next(uint8_t current) {
   }
 }
 
-uint8_t previous(uint8_t current) {
-  if (current == 0) {
-    return BUF_SIZE - 1;
-  } else {
-    return --current;
-  }
-}
-
 bool isFull() { return (reader == writer) && full }
 
 bool isEmpty() { return (reader == writer) && !full }
+
+bool count() {
+  if (isFull()) {
+    return BUF_SIZE;
+  }
+  if (isEmpty()) {
+    return 0;
+  }
+
+  return (reader > writer) ? (reader - writer) : (writer - reader);
+}
 
 /**
  *
@@ -121,12 +124,31 @@ bool put_buffer(const uint8_t in) {
   }
 
   receive_buffer[writer] = in;
-  writer++;
+
+  writer = next(writer);
+  if (writer == reader) {
+    full = true;
+  }
 
   return true;
 }
 
-bool take_buffer(uint8_t *out) {}
+bool take_buffer(uint8_t *const out) {
+  const bool empty = isEmpty();
+
+  if (empty) {
+    return false;
+  }
+
+  *out = receive_buffer[reader];
+
+  reader = next(reader);
+  if (writer == reader) {
+    full = false;
+  }
+
+  return true;
+}
 
 /*
  This functions initializes UART3 as listed above, and prepares the ringbuffer of the receiving
