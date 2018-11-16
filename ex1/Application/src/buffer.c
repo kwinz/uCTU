@@ -12,7 +12,7 @@ uint8_t buffer_count(ringbuffer *const buffer) {
     return BUF_SIZE;
   }
 
-    if (isEmpty(buffer)) {
+  if (isEmpty(buffer)) {
     return 0;
   }
 
@@ -20,7 +20,7 @@ uint8_t buffer_count(ringbuffer *const buffer) {
                                            : (buffer->writer - buffer->reader);
 }
 
-bool buffer_init(ringbuffer *const buffer) { memset(buffer, 0, sizeof(ringbuffer)); }
+void buffer_init(ringbuffer *const buffer) { memset(buffer, 0, sizeof(ringbuffer)); }
 
 /**
  *

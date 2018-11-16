@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 // needs to be <=255
-#define BUF_SIZE 3
+#define BUF_SIZE 32
 
 typedef struct {
   uint8_t data[BUF_SIZE];
@@ -13,7 +13,7 @@ typedef struct {
   uint8_t writer;
 } ringbuffer;
 
-bool buffer_init(ringbuffer *const buffer);
+void buffer_init(ringbuffer *const buffer);
 uint8_t buffer_count(ringbuffer *const buffer);
 bool buffer_put(ringbuffer *const buffer, const uint8_t in);
 bool buffer_take(ringbuffer *const buffer, uint8_t *const out);

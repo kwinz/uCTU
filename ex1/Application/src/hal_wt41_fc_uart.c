@@ -1,9 +1,10 @@
 #include "hal_wt41_fc_uart.h"
+#include "buffer.h"
 #include "tools.h"
 
-#include <stdbool.h>
-
+#include <avr/interrupt.h>
 #include <avr/io.h>
+#include <util/atomic.h>
 
 /*
 Port B SPI
@@ -28,6 +29,22 @@ void USART_Init(unsigned int ubrr) {
   UCSR3C = (1 << USBS3) | (3 << UCSZ02);
 }
 
+#define RTS_PIN 2
+#define CTS_PIN 3
+
+static ringbuffer a;
+static volatile uint8_t sendbuffer;
+static volatile bool resetting = false;
+static volatile bool sending = false;
+static volatile bool rcvCallbacksRunning = false;
+
+// output CTS high (set) indicates that we currently cannot handle anymore data.
+static void setCTS() { PORTJ |= (1 << CTS_PIN); }
+static void clearCTS() { PORTJ &= ~(1 << CTS_PIN); }
+
+// When the WT 41 Bluetooth module sets RTS to high, no more data must be sent to the module.
+static bool isRTS() { return (PORTJ & (1 << RTS_PIN)) ? true : false; }
+
 static void uart_1M(void) {
   // set UART3 with a baudrate of 1 Mbit/s
   // page 231 of ATmega1280 manual
@@ -44,11 +61,6 @@ static void uart_1M(void) {
   directions
   */
   {
-    // enable receiver
-    UCSR3B |= (1 << RXEN3);
-
-    // enable transmitter
-    UCSR3B |= (1 << TXEN3);
 
     // 8 bits/frame (011)
     UCSR3B &= ~(1 << UCSZ32);
@@ -62,106 +74,48 @@ static void uart_1M(void) {
 
     // 1 stop bit
     UCSR3C &= ~(1 << USBS3);
-  }
 
-  // /usr/share/doc/avr-libc/examples/stdiodemo/
-}
+    // enable all interrupts
+    // UCSR3B |= (1 << RXCIE3) | (1 << TXCIE3) | (1 << UDRIE3);
+    UCSR3B |= (1 << RXCIE3) | (1 << TXCIE3);
 
-void USART_Transmit(unsigned char data) {
-  /* Wait for empty transmit buffer */
-  while (!(UCSR3A & (1 << UDRE3)))
-    ;
-  /* Put data into buffer, sends the data */
-  UDR3 = data;
-}
+    // enable receiver
+    UCSR3B |= (1 << RXEN3);
 
-// When the WT 41 Bluetooth module sets RTS to high, no more data must be sent to the module.
-#define RTS_PIN 2
-
-// output CTS high indicates that we currently cannot handle anymore data.
-#define CTS_PIN 3
-
-// needs to be <=255
-#define BUF_SIZE 64
-
-uint8_t receive_buffer[BUF_SIZE];
-bool full = false;
-
-uint8_t reader = 0;
-uint8_t writer = BUF_SIZE - 1;
-
-uint8_t next(uint8_t current) {
-  if (current == BUF_SIZE - 1) {
-    return 0;
-  } else {
-    return ++current;
+    // enable transmitter
+    UCSR3B |= (1 << TXEN3);
   }
 }
 
-bool isFull() { return (reader == writer) && full }
+// /usr/share/doc/avr-libc/examples/stdiodemo/
 
-bool isEmpty() { return (reader == writer) && !full }
+static void (*sndCallbackGlobal)();
 
-bool count() {
-  if (isFull()) {
-    return BUF_SIZE;
-  }
-  if (isEmpty()) {
-    return 0;
-  }
-
-  return (reader > writer) ? (reader - writer) : (writer - reader);
-}
-
-/**
- *
- * @return true if successful, retry on on false
- */
-bool put_buffer(const uint8_t in) {
-  const bool full = isFull();
-  if (full) {
-    return false;
-  }
-
-  receive_buffer[writer] = in;
-
-  writer = next(writer);
-  if (writer == reader) {
-    full = true;
-  }
-
-  return true;
-}
-
-bool take_buffer(uint8_t *const out) {
-  const bool empty = isEmpty();
-
-  if (empty) {
-    return false;
-  }
-
-  *out = receive_buffer[reader];
-
-  reader = next(reader);
-  if (writer == reader) {
-    full = false;
-  }
-
-  return true;
-}
+static void (*rcvCallbackGlobal)(uint8_t);
 
 /*
  This functions initializes UART3 as listed above, and prepares the ringbuffer of the receiving
-part. It also resets the Bluetooth module by pulling the reset pin PJ5 low for 5 ms. Whenever the
-module receives a character from the Bluetooth module it has to be put it into a ringbuffer. The
-buffer should be able to hold at least 32 bytes. For every character put in the ringbuffer, the
-rcvCallback callback function must be called. Re-enable the interrupts before calling the callback
-function. Make sure you do not call rcvCallback again before the previous call has returned.
-If there are less than 5 bytes free in the buffer, the HAL module should trigger the flow control,
-by setting CTS to high, to indicate that it currently cannot handle anymore data. If the buffer gets
-at least half empty (less than 16 bytes stored in the case of a 32 byte buffer) the module should
-release flow control by setting CTS to low.*/
+part. It also resets the Bluetooth module by pulling the reset pin PJ5 low for 5 ms. Whenever
+the module receives a character from the Bluetooth module it has to be put it into a ringbuffer.
+The buffer should be able to hold at least 32 bytes. For every character put in the ringbuffer,
+the rcvCallback callback function must be called. Re-enable the interrupts before calling the
+callback function. Make sure you do not call rcvCallback again before the previous call has
+returned. If there are less than 5 bytes free in the buffer, the HAL module should trigger the
+flow control, by setting CTS to high, to indicate that it currently cannot handle anymore data.
+If the buffer gets at least half empty (less than 16 bytes stored in the case of a 32 byte
+buffer) the module should release flow control by setting CTS to low.*/
 error_t halWT41FcUartInit(void (*sndCallback)(), void (*rcvCallback)(uint8_t)) {
+
+  DDRA = 0xFF;
+  PORTA = 0x00;
+
+  sndCallbackGlobal = sndCallback;
+  rcvCallbackGlobal = rcvCallback;
+
+  buffer_init(&a);
+  // buffer_put(&a, 5);
+  // uint8_t out;
+  // const bool successful = buffer_take(&a, &out);
 
   // RTS is an input
   DDRJ &= ~(1 << RTS_PIN);
@@ -172,14 +126,47 @@ error_t halWT41FcUartInit(void (*sndCallback)(), void (*rcvCallback)(uint8_t)) {
 
   // reset bluetooth module
   {
+    resetting = true;
     // DDRJ = 0xFF;
     DDRJ = DDRJ | (1 << 5);
     PORTJ = PORTJ & ~(1 << 5);
-    busyWaitMS(1000);
+    busyWaitMS(10);
     PORTJ = PORTJ | (1 << 5);
+    resetting = false;
   }
 
+  // setup RTS interrupt
+  {
+    PCICR |= (1 << PCIE2);
+    PCMSK2 |= (1 << PCINT18);
+  }
+
+  PORTA |= (1 << 0);
+
   return SUCCESS;
+}
+
+void static send(const uint8_t out) {
+  /* Put data into buffer, sends the data */
+  UDR3 = out;
+  PORTA |= (1 << 1);
+}
+
+static bool hwTXBuferEmpty() {
+  // Data Register Empty - The UDREn Flag indicates if the transmit buffer (UDRn) is ready to
+  // receive new data.
+  return UCSR3A & (1 << UDRE3);
+}
+
+static void trySendingBufferedValue() {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    // should we feed the hw a new byte immediately?
+    if (sending && !isRTS()) {
+      send(sendbuffer);
+      sending = false;
+      PORTA |= (1 << 7);
+    }
+  }
 }
 
 /*
@@ -198,4 +185,85 @@ buffered bytes has to be sent and sndCallback called. This approach must also be
 hardware flow control of the WT 41 (RTS) is active. The Bluetooth stack will send data byte-wise and
 continue with the next byte only when sndCallback is called, so no extra buffering needs to be done.
 */
-error_t halWT41FcUartSend(uint8_t byte) { return SUCCESS; }
+error_t halWT41FcUartSend(uint8_t byte) {
+  // while (!(UCSR3A & (1 << UDRE3)));
+
+  PORTA |= (1 << 2);
+
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    if (sending) {
+      // assert(false);
+    }
+    if (hwTXBuferEmpty() && !isRTS()) {
+      send(byte);
+    } else {
+      sendbuffer = byte;
+      sending = true;
+    }
+  }
+
+  return SUCCESS;
+}
+
+// RTS PK2 (ADC10/PCINT18)
+// CTS PK3 (ADC11/PCINT19)
+// The Pin change interrupt PCI2 will trigger if any enabled PCINT23:16 pin toggles
+// But we have only enabled RTS PK2 (ADC10/PCINT18)
+ISR(PCINT2_vect, ISR_NOBLOCK) {
+  PORTA |= (1 << 3);
+  trySendingBufferedValue();
+}
+
+ISR(USART3_RX_vect, ISR_NOBLOCK) {
+
+  PORTA |= (1 << 5);
+  // Rx Complete
+  // PORTA = ~PORTA;
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    const uint8_t in = UDR3;
+    const bool successful = buffer_put(&a, in);
+    if (!successful) {
+      // fail();
+    }
+    const uint8_t count = buffer_count(&a);
+    if (BUF_SIZE - count <= 5) {
+      setCTS();
+    } else if (count < BUF_SIZE / 2) {
+      clearCTS();
+    }
+  }
+
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    if (rcvCallbacksRunning) {
+      return;
+    } else {
+      rcvCallbacksRunning = true;
+    }
+  }
+
+  while (true) {
+    uint8_t out;
+    bool successful;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { successful = buffer_take(&a, &out); }
+    if (!successful) {
+      rcvCallbacksRunning = false;
+      return;
+    }
+    PORTA |= (1 << 4);
+    rcvCallbackGlobal(out);
+  }
+}
+
+ISR(USART3_UDRE_vect, ISR_NOBLOCK) {
+  // Data register Empty
+}
+
+ISR(USART3_TX_vect, ISR_NOBLOCK) {
+  // previous byte was written
+
+  PORTA |= (1 << 6);
+  trySendingBufferedValue();
+
+  // send callback for the previous written byte
+  sndCallbackGlobal();
+}
