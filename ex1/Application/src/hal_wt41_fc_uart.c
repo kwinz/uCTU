@@ -1,5 +1,4 @@
-#include "uart.h"
-#include "tools.h"
+#include "hal_wt41_fc_uart.h"
 
 /*
 Port B SPI
