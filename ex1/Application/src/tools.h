@@ -7,4 +7,4 @@
 #define FOSC F_CPU // Clock Speed
 
 void fail(void);
-void busyWaitMS(uint16_t ms);
+void busyWaitMS(const uint16_t ms);

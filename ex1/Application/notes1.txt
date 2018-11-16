@@ -21,6 +21,34 @@ UCSRnA – USART Control and Status Register A
 3 data overrun
 2 - parity error
 1 - double transmission speed
-0 - 
+0 - Multi-processor Communication Mode
+
+UCSR3B
+7 - rx interrupt en
+6 - tx interrupt en
+5 - data register empty interrupt en
+4 - RXENn:
+3 - TXENn:
+2 - UCSZn2 number of data bits (Character SiZe) in a frame
+1 - Receive Data Bit 8 (9 bits/frame)
+0 - tx Data Bit 8 (9 bits/frame)
+
+UCSR3C
+7+6 - mode select (UART = 00)
+5+4 - parity mode (no parity = 00)
+3 - stop bit (2 stop bit = 1)
+2+ 1 - UCSZn1 and UCSZn0 - number of data bits (Character SiZe) in a frame (8-bit = 011)
+0 - bullshit synchronous mode
+
+7 -
+6 -
+5 -
+4 -
+3 -
+2 -
+1 -
+0 -
+
+UBRRnL baude rate rgeister low byte
 
 

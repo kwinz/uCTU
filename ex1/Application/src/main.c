@@ -6,77 +6,13 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include <avr/io.h>
-#define BAUD 1000000UL
-#define USART_UBBR_VALUE ((F_CPU / (USART_BAUD << 4)) - 1)
-#include <util/setbaud.h>
-
 void rcvButton(uint8_t wii, uint16_t buttonStates) {}
 void rcvAccel(uint8_t wii, uint16_t x, uint16_t y, uint16_t z) {}
 void conCallback(uint8_t wii, connection_status_t status) {}
 
-#define MYUBRR (FOSC / 16 / BAUD - 1)
-
-// https://github.com/vancegroup-mirrors/avr-libc/blob/master/avr-libc/include/avr/iomxx0_1.h
-
-void USART_Init(unsigned int ubrr) {
-  /* Set baud rate */
-  UBRR3H = (unsigned char)(ubrr >> 8);
-  UBRR3L = (unsigned char)ubrr;
-  /* Enable receiver and transmitter */
-  UCSR3B = (1 << RXEN3) | (1 << TXEN3);
-  /* Set frame format: 8data, 2stop bit */
-  // FIXME: UCSZ03??
-  UCSR3C = (1 << USBS3) | (3 << UCSZ02);
-}
-
-static void uart_1M(void) {
-  // set UART3 with a baudrate of 1 Mbit/s
-  // page 231 of ATmega1280 manual
-  {
-    const unsigned int ubrr = 0;
-    UBRR3H = (unsigned char)(ubrr >> 8);
-    UBRR3L = (unsigned char)ubrr;
-    // clear U2X3
-    UCSR3A &= ~(1 << U2X3);
-  }
-
-  /*
-  , 8
-  data bits, no parity, 1 stop bit (i.e., 8N1), and hardware flow control (RTS/CTS) in both
-  directions
-  */
-
-  /* tx/rx enable */
-  // UCSRB = _BV(TXEN) | _BV(RXEN);
-
-  // /usr/share/doc/avr-libc/examples/stdiodemo/
-}
-
-void USART_Transmit(unsigned char data) {
-  /* Wait for empty transmit buffer */
-  while (!(UCSR3A & (1 << UDRE3)))
-    ;
-  /* Put data into buffer, sends the data */
-  UDR3 = data;
-}
-
 void setup() {
   DDRA = 0xFF;
   PORTA = 0xAF;
-  busyWaitMS(1000);
-  PORTA = 0xFF;
-  busyWaitMS(1000);
-  PORTA = 0xAF;
-  busyWaitMS(1000);
-  PORTA = 0xFF;
-  busyWaitMS(1000);
-  PORTA = 0xAF;
-  busyWaitMS(1000);
-  PORTA = 0xFF;
-
-  // USART_Init(MYUBRR);
-  uart_1M();
 
   uint8_t wii = 1;
   const uint8_t mac = 1;
