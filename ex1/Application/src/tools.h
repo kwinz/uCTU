@@ -8,3 +8,8 @@
 
 void fail(void);
 void busyWaitMS(const uint16_t ms);
+
+#ifndef likely
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
+#endif
