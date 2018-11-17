@@ -36,6 +36,8 @@ static volatile uint8_t reader = 0;
 static volatile uint8_t writer = 0;
 static volatile bool calling = false;
 
+static volatile count = 0;
+
 error_t halWT41FcUartInit(void (*sndCallback)(), void (*rcvCallback)(uint8_t)) {
   DDRC = 0xFF;
   PORTC = 0x00;
@@ -88,12 +90,14 @@ ISR(USART3_RX_vect) {
   buffer[writer] = UDR3;
   writer = (writer + 1) % BUF_SIZE;
 
-  // PORTD = writer;
-  // PORTH = reader;
-  // PORTD = elements;
-  // PORTE = elements;
-
   uint8_t elements = writer > reader ? writer - reader : BUF_SIZE - reader + writer;
+
+  // for (int i = 0; i < 1; ++i)
+  count++;
+  // count++;
+  // count++;
+
+  // check if we have to set CTS
 
   if (calling)
     return;
