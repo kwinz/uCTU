@@ -22,14 +22,14 @@ void setup() {
   PORTA = 0x00;
 
   halWT41FcUartInit(&mySndCallback, &myRcvCallback);
+  sei();
+  // while (true) {
   halWT41FcUartSend(4U);
-
+  //}
   // uint8_t wii = 1;
   // const uint8_t mac = 1;
   // error_t ret = wiiUserInit(&rcvButton, &rcvAccel);
   // ret = wiiUserConnect(wii, &mac, &conCallback);
-
-  sei();
 }
 
 void background() {}

@@ -137,11 +137,13 @@ error_t halWT41FcUartInit(void (*sndCallback)(), void (*rcvCallback)(uint8_t)) {
 
   // setup RTS interrupt
   {
-    PCICR |= (1 << PCIE2);
-    PCMSK2 |= (1 << PCINT18);
+    PCICR |= (1 << PCIE1);
+    PCMSK1 |= (1 << PCINT11);
   }
 
   PORTA |= (1 << 0);
+
+  clearCTS();
 
   return SUCCESS;
 }
@@ -164,7 +166,6 @@ static void trySendingBufferedValue() {
     if (sending && !isRTS()) {
       send(sendbuffer);
       sending = false;
-      PORTA |= (1 << 7);
     }
   }
 }
@@ -205,12 +206,17 @@ error_t halWT41FcUartSend(uint8_t byte) {
   return SUCCESS;
 }
 
-// RTS PK2 (ADC10/PCINT18)
-// CTS PK3 (ADC11/PCINT19)
-// The Pin change interrupt PCI2 will trigger if any enabled PCINT23:16 pin toggles
-// But we have only enabled RTS PK2 (ADC10/PCINT18)
-ISR(PCINT2_vect, ISR_NOBLOCK) {
+// RTS PJ2 (XCK3/PCINT11)
+// CTS PJ3 (PCINT12)
+// Any change on any enabled PCINT15:8 pin will cause an inter-rupt.
+// But we have only enabled RTS PJ2 (XCK3/PCINT11)
+ISR(PCINT1_vect, ISR_NOBLOCK) {
   PORTA |= (1 << 3);
+  if (isRTS()) {
+    PORTA |= (1 << 7);
+  } else {
+    PORTA &= ~(1 << 7);
+  }
   trySendingBufferedValue();
 }
 
