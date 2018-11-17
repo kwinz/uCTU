@@ -14,20 +14,22 @@ Port J USART3
 every USART can operate also in SPI mode
 */
 
-#define MYUBRR (FOSC / 16 / BAUD - 1)
+//#define MYUBRR (FOSC / 16 / BAUD - 1)
 
 // https://github.com/vancegroup-mirrors/avr-libc/blob/master/avr-libc/include/avr/iomxx0_1.h
 
+/*
 void USART_Init(unsigned int ubrr) {
-  /* Set baud rate */
+  // Set baud rate
   UBRR3H = (unsigned char)(ubrr >> 8);
   UBRR3L = (unsigned char)ubrr;
-  /* Enable receiver and transmitter */
+  // Enable receiver and transmitter
   UCSR3B = (1 << RXEN3) | (1 << TXEN3);
-  /* Set frame format: 8data, 2stop bit */
+  // Set frame format: 8data, 2stop bit
   // FIXME: UCSZ03??
   UCSR3C = (1 << USBS3) | (3 << UCSZ02);
 }
+*/
 
 #define RTS_PIN 2
 #define CTS_PIN 3
@@ -64,20 +66,21 @@ static void uart_1M(void) {
 
     // 8 bits/frame (011)
     UCSR3B &= ~(1 << UCSZ32);
-    UCSR3C |= (1 << UCSZ31 || 1 << UCSZ30);
+    UCSR3C |= (1 << UCSZ31 | 1 << UCSZ30);
 
     // Asynchronous USART
-    UCSR3C &= ~(1 << UMSEL31 || 1 << UMSEL30);
+    UCSR3C &= ~(1 << UMSEL31 | 1 << UMSEL30);
 
     // Partiy disabled
-    UCSR3C &= ~(1 << UPM31 || 1 << UPM30);
+    UCSR3C &= ~(1 << UPM31 | 1 << UPM30);
 
     // 1 stop bit
     UCSR3C &= ~(1 << USBS3);
 
     // enable all interrupts
     // UCSR3B |= (1 << RXCIE3) | (1 << TXCIE3) | (1 << UDRIE3);
-    UCSR3B |= (1 << RXCIE3) | (1 << TXCIE3);
+    UCSR3B |= (1 << TXCIE3); //|(1 << RXCIE3); //|
+    UCSR3B |= (1 << RXCIE3);
 
     // enable receiver
     UCSR3B |= (1 << RXEN3);
@@ -107,6 +110,7 @@ buffer) the module should release flow control by setting CTS to low.*/
 error_t halWT41FcUartInit(void (*sndCallback)(), void (*rcvCallback)(uint8_t)) {
 
   DDRA = 0xFF;
+  DDRB = 0xFF;
   PORTA = 0x00;
 
   sndCallbackGlobal = sndCallback;
@@ -122,6 +126,12 @@ error_t halWT41FcUartInit(void (*sndCallback)(), void (*rcvCallback)(uint8_t)) {
   // CTS is an output
   DDRJ |= (1 << CTS_PIN);
 
+  DDRJ |= (1 << 1);
+  DDRJ &= ~(1 << 0);
+
+  UCSR3A = 0;
+  UCSR3B = 0;
+  UCSR3C = 0;
   uart_1M();
 
   // reset bluetooth module
@@ -130,7 +140,7 @@ error_t halWT41FcUartInit(void (*sndCallback)(), void (*rcvCallback)(uint8_t)) {
     // DDRJ = 0xFF;
     DDRJ = DDRJ | (1 << 5);
     PORTJ = PORTJ & ~(1 << 5);
-    busyWaitMS(10);
+    busyWaitMS(5);
     PORTJ = PORTJ | (1 << 5);
     resetting = false;
   }
@@ -141,10 +151,14 @@ error_t halWT41FcUartInit(void (*sndCallback)(), void (*rcvCallback)(uint8_t)) {
     PCMSK1 |= (1 << PCINT11);
   }
 
-  PORTA |= (1 << 0);
-
   clearCTS();
 
+  // UCSR3A |= (1 << RXC3);
+  // PORTB = UCSR3A;
+
+  sei();
+
+  PORTA |= (1 << 0);
   return SUCCESS;
 }
 
@@ -221,7 +235,6 @@ ISR(PCINT1_vect, ISR_NOBLOCK) {
 }
 
 ISR(USART3_RX_vect, ISR_NOBLOCK) {
-
   PORTA |= (1 << 5);
   // Rx Complete
   // PORTA = ~PORTA;
@@ -260,12 +273,14 @@ ISR(USART3_RX_vect, ISR_NOBLOCK) {
   }
 }
 
-ISR(USART3_UDRE_vect, ISR_NOBLOCK) {
-  // Data register Empty
-}
+// ISR(USART3_UDRE_vect, ISR_NOBLOCK) {
+// Data register Empty
+//}
 
 ISR(USART3_TX_vect, ISR_NOBLOCK) {
   // previous byte was written
+
+  PORTB = UCSR3A;
 
   PORTA |= (1 << 6);
   trySendingBufferedValue();
