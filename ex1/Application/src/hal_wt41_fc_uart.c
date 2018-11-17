@@ -1,6 +1,8 @@
 #include "hal_wt41_fc_uart.h"
-#include "buffer.h"
 #include "tools.h"
+
+#include <stdbool.h>
+#include <stdint.h>
 
 #include <avr/interrupt.h>
 #include <avr/io.h>
@@ -30,13 +32,24 @@ static void uart_1M(void) {
 static void (*sndCallbackGlobal)();
 static void (*rcvCallbackGlobal)(uint8_t);
 
-#define BUF_SIZE 128
+#define BUF_SIZE 32
 static volatile uint8_t buffer[BUF_SIZE];
 static volatile uint8_t reader = 0;
 static volatile uint8_t writer = 0;
 static volatile bool calling = false;
+static volatile uint8_t sendbuffer;
+static volatile bool resetting = false;
+static volatile bool bufferedSendBytePresent = false;
 
-static volatile count = 0;
+static volatile int count = 0;
+
+static bool hwTXBuferEmpty() {
+  // Data Register Empty - The UDREn Flag indicates if the transmit buffer (UDRn) is ready to
+  // receive new data.
+  return UCSR3A & (1 << UDRE3);
+}
+
+static bool isRTS() { return PINJ & (1 << RTS_PIN); }
 
 error_t halWT41FcUartInit(void (*sndCallback)(), void (*rcvCallback)(uint8_t)) {
   DDRC = 0xFF;
@@ -56,6 +69,11 @@ error_t halWT41FcUartInit(void (*sndCallback)(), void (*rcvCallback)(uint8_t)) {
     PCICR |= (1 << PCIE1);
     PCMSK1 |= (1 << PCINT11);
   }
+
+  // RTS is an input
+  DDRJ &= ~(1 << RTS_PIN);
+  // CTS is an output
+  DDRJ |= (1 << CTS_PIN);
 
   // reset bluetooth module
   {
@@ -77,27 +95,35 @@ error_t halWT41FcUartSend(uint8_t byte) {
   PORTC |= (1 << 2);
   sei();
 
-  UDR3 = byte;
-
+  if (!resetting && hwTXBuferEmpty() && !isRTS()) {
+    UDR3 = byte;
+  } else {
+    cli();
+    sendbuffer = byte;
+    bufferedSendBytePresent = true;
+    sei();
+  }
   return SUCCESS;
 }
-
-static void setCTS() {}
-static void clearCTS() {}
 
 ISR(USART3_RX_vect) {
   PORTC |= (1 << 5);
   buffer[writer] = UDR3;
   writer = (writer + 1) % BUF_SIZE;
+  sei();
+  // world's shortest busy wait
+  ++count;
+  ++count;
+  cli();
 
   uint8_t elements = writer > reader ? writer - reader : BUF_SIZE - reader + writer;
-
-  // for (int i = 0; i < 1; ++i)
-  count++;
-  // count++;
-  // count++;
-
-  // check if we have to set CTS
+  if (elements > BUF_SIZE - 5) {
+    PORTJ |= (1 << CTS_PIN);
+    // PORTC |= (1 << 3);
+  } else if (elements < BUF_SIZE / 2) {
+    PORTJ &= ~(1 << CTS_PIN);
+    // PORTC |= (1 << 4);
+  }
 
   if (calling)
     return;
@@ -112,9 +138,22 @@ ISR(USART3_RX_vect) {
   calling = false;
 }
 
+static void trySendFromISR() {
+  if (!resetting && bufferedSendBytePresent && hwTXBuferEmpty() && !isRTS()) {
+    UDR3 = sendbuffer;
+    bufferedSendBytePresent = false;
+  }
+}
+
 ISR(USART3_TX_vect) {
   PORTC |= (1 << 6);
+
+  // try to send new byte
+  trySendFromISR();
+
+  sei();
+  // send callback for the previous written byte
   sndCallbackGlobal();
 }
 
-ISR(PCINT1_vect) {}
+ISR(PCINT1_vect) { trySendFromISR(); }
