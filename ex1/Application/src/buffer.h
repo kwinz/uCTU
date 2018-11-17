@@ -5,6 +5,11 @@
 #include <stdint.h>
 #include <string.h> /* memset */
 
+#ifndef likely
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
+#endif
+
 // needs to be <=255
 #define BUF_SIZE 128
 
@@ -24,16 +29,15 @@ buffer_take(volatile ringbuffer *buffer, uint8_t *const out);
 static inline __attribute__((always_inline)) uint8_t next(uint8_t current);
 static inline __attribute__((always_inline)) bool isFull(volatile ringbuffer *buffer);
 static inline __attribute__((always_inline)) bool isEmpty(volatile ringbuffer *buffer);
+static inline __attribute__((always_inline)) void buffer_put_fast(volatile ringbuffer *buffer,
+                                                                  const uint8_t in);
 
 // public methods
 
 uint8_t buffer_count(volatile ringbuffer *buffer) {
-  if (isFull(buffer)) {
-    return BUF_SIZE;
-  }
 
-  if (isEmpty(buffer)) {
-    return 0;
+  if (buffer->reader == buffer->writer) {
+    return unlikely(buffer->full) ? BUF_SIZE : 0;
   }
 
   return (buffer->reader > buffer->writer) ? (buffer->reader - buffer->writer)
@@ -42,10 +46,14 @@ uint8_t buffer_count(volatile ringbuffer *buffer) {
 
 void buffer_init(volatile ringbuffer *buffer) { memset((void *)buffer, 0, sizeof(ringbuffer)); }
 
-/**
- *
- * @return true if successful, retry on on false
- */
+void buffer_put_fast(volatile ringbuffer *buffer, const uint8_t in) {
+  buffer->data[buffer->writer] = in;
+  buffer->writer = next(buffer->writer);
+  if (buffer->writer == buffer->reader) {
+    buffer->full = true;
+  }
+}
+
 bool buffer_put(volatile ringbuffer *buffer, const uint8_t in) {
   const bool full = isFull(buffer);
   if (full) {
