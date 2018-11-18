@@ -32,7 +32,7 @@ static void uart_1M(void) {
 static void (*sndCallbackGlobal)();
 static void (*rcvCallbackGlobal)(uint8_t);
 
-#define BUF_SIZE 32
+#define BUF_SIZE 128
 static volatile uint8_t buffer[BUF_SIZE];
 static volatile uint8_t reader = 0;
 static volatile uint8_t writer = 0;
@@ -52,13 +52,6 @@ static bool hwTXBuferEmpty() {
 static bool isRTS() { return PINJ & (1 << RTS_PIN); }
 
 error_t halWT41FcUartInit(void (*sndCallback)(), void (*rcvCallback)(uint8_t)) {
-  DDRC = 0xFF;
-  PORTC = 0x00;
-  DDRD = 0xFF;
-  PORTD = 0x00;
-  DDRH = 0xFF;
-  PORTH = 0x00;
-
   sndCallbackGlobal = sndCallback;
   rcvCallbackGlobal = rcvCallback;
 
@@ -83,18 +76,10 @@ error_t halWT41FcUartInit(void (*sndCallback)(), void (*rcvCallback)(uint8_t)) {
     busyWaitMS(5);
     PORTJ = PORTJ | (1 << 5);
   }
-
-  cli();
-  PORTC |= (1 << 0);
-  sei();
   return SUCCESS;
 }
 
 error_t halWT41FcUartSend(uint8_t byte) {
-  cli();
-  PORTC |= (1 << 2);
-  sei();
-
   if (!resetting && hwTXBuferEmpty() && !isRTS()) {
     UDR3 = byte;
   } else {
@@ -107,9 +92,9 @@ error_t halWT41FcUartSend(uint8_t byte) {
 }
 
 ISR(USART3_RX_vect) {
-  PORTC |= (1 << 5);
   buffer[writer] = UDR3;
   writer = (writer + 1) % BUF_SIZE;
+  PORTJ |= (1 << CTS_PIN);
   sei();
   // world's shortest busy wait
   ++count;
@@ -119,10 +104,8 @@ ISR(USART3_RX_vect) {
   uint8_t elements = writer > reader ? writer - reader : BUF_SIZE - reader + writer;
   if (elements > BUF_SIZE - 5) {
     PORTJ |= (1 << CTS_PIN);
-    // PORTC |= (1 << 3);
   } else if (elements < BUF_SIZE / 2) {
     PORTJ &= ~(1 << CTS_PIN);
-    // PORTC |= (1 << 4);
   }
 
   if (calling)
@@ -146,8 +129,6 @@ static void trySendFromISR() {
 }
 
 ISR(USART3_TX_vect) {
-  PORTC |= (1 << 6);
-
   // try to send new byte
   trySendFromISR();
 
