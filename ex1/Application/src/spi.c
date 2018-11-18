@@ -7,8 +7,10 @@ void spiInit(void) {
 (CPOL=0, CPHA=0) and send the MSB first.*/
 
   // DDR_SPI = (1 << DD_MOSI) | (1 << DD_SCK);
+  DDRB = (1 << PB1) | (1 << PB2);
   SPCR |= (1 << SPE) | (1 << MSTR);
   // SPSR &= (1 << SPR2X);
+  spiSetPrescaler(SPI_PRESCALER_4);
 }
 void spiSend(uint8_t data) {
   /*Sends one byte via the SPI module. As the SPI data rate is very high, the overhead for setting
@@ -29,6 +31,7 @@ Note that the SD Card needs the pattern 0xFF to be sent as dummy value during re
     ;
   return SPDR;
 }
+
 void spiSetPrescaler(spi_prescaler_t prescaler) {
   switch (prescaler) {
   case (SPI_PRESCALER_128): {

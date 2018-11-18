@@ -14,6 +14,8 @@
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
 
+#include <math.h>
+
 extern const uint8_t _mac[1][6];
 bool rumbler = false;
 
@@ -39,6 +41,8 @@ void conCallback(const uint8_t wii, const connection_status_t status) {
     wiiUserConnect(wii, _mac[0], &conCallback);
   }
 }
+
+static void dataRequestCallback(void) {}
 
 void setup() {
   DDRA = 0xFF;
@@ -75,6 +79,11 @@ void setup() {
 
   glcdDrawLine(a, b, &glcdInvertPixel);
 
+  spiInit();
+
+  sei();
+
+  mp3Init(&dataRequestCallback);
   mp3SetVolume(0xA0);
   mp3StartSineTest();
 }
