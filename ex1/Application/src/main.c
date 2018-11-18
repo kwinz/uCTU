@@ -13,13 +13,22 @@
 #include <avr/sleep.h>
 
 extern const uint8_t _mac[1][6];
+bool rumbler = false;
 
-void setRumblerCallback(uint8_t wii, error_t status) {}
-void rcvButton(uint8_t wii, uint16_t buttonStates) {
-  wiiUserSetRumbler(wii, false, &setRumblerCallback);
+void setRumblerCallback(const uint8_t wii, const error_t status) {}
+void rcvButton(const uint8_t wii, const uint16_t buttonStates) {
+  // 1 = 2
+  // 2 = 1
+  // 4 = B
+  // 8 = A
+  // 16 = -
+  if (buttonStates == 4) {
+    rumbler = !rumbler;
+    wiiUserSetRumbler(wii, rumbler, &setRumblerCallback);
+  }
 }
-void rcvAccel(uint8_t wii, uint16_t x, uint16_t y, uint16_t z) {}
-void conCallback(uint8_t wii, connection_status_t status) {
+void rcvAccel(const uint8_t wii, const uint16_t x, const uint16_t y, const uint16_t z) {}
+void conCallback(const uint8_t wii, const connection_status_t status) {
   if (status == CONNECTED) {
     PORTA = 0x0F;
     // fail();
