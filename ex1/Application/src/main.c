@@ -1,6 +1,8 @@
 #include "debug.h"
 #include "glcd.h"
+#include "mp3.h"
 #include "rand.h"
+#include "spi.h"
 #include "tools.h"
 #include "wii_user.h"
 
@@ -72,6 +74,9 @@ void setup() {
   xy_point b = {50, rand16() % 50U};
 
   glcdDrawLine(a, b, &glcdInvertPixel);
+
+  mp3SetVolume(0xA0);
+  mp3StartSineTest();
 }
 
 void background() {
