@@ -98,6 +98,10 @@ void background() {
   xy_point b = {50, rand16() % 50U};
 
   glcdDrawLine(a, b, &glcdInvertPixel);
+
+  if (rand16() < 200) {
+    glcdSetYShift(glcdGetYShift() + 1);
+  }
 }
 
 int main(void) {
