@@ -41,8 +41,6 @@ static volatile uint8_t sendbuffer;
 static volatile bool resetting = false;
 static volatile bool bufferedSendBytePresent = false;
 
-static volatile int count = 0;
-
 static bool hwTXBuferEmpty() {
   // Data Register Empty - The UDREn Flag indicates if the transmit buffer (UDRn) is ready to
   // receive new data.
@@ -94,12 +92,6 @@ error_t halWT41FcUartSend(uint8_t byte) {
 ISR(USART3_RX_vect) {
   buffer[writer] = UDR3;
   writer = (writer + 1) % BUF_SIZE;
-  PORTJ |= (1 << CTS_PIN);
-  sei();
-  // world's shortest busy wait
-  ++count;
-  ++count;
-  cli();
 
   uint8_t elements = writer > reader ? writer - reader : BUF_SIZE - reader + writer;
   if (elements > BUF_SIZE - 5) {
@@ -108,9 +100,10 @@ ISR(USART3_RX_vect) {
     PORTJ &= ~(1 << CTS_PIN);
   }
 
-  if (calling)
+  if (calling) {
+    sei();
     return;
-  else
+  } else
     calling = true;
   do {
     sei();
@@ -119,6 +112,7 @@ ISR(USART3_RX_vect) {
     reader = (reader + 1) % BUF_SIZE;
   } while (writer != reader);
   calling = false;
+  sei();
 }
 
 static void trySendFromISR() {
