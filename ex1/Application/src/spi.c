@@ -8,8 +8,8 @@ void spiInit(void) {
 
   // DDR_SPI = (1 << DD_MOSI) | (1 << DD_SCK);
   DDRB = (1 << PB1) | (1 << PB2);
-  SPCR |= (1 << SPE) | (1 << MSTR);
-  // SPSR &= (1 << SPR2X);
+  SPCR = (1 << SPE) | (1 << MSTR);
+  SPSR &= ~(1 << SPI2X);
   spiSetPrescaler(SPI_PRESCALER_4);
 }
 void spiSend(uint8_t data) {

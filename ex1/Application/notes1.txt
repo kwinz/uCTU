@@ -2,6 +2,7 @@
 USART3
 TXEN3
 
+Port A GLCD
 Port B SPI
 Port D USART1
 Port H USART2
@@ -59,7 +60,8 @@ timer 10ms
 add to pool
 
 
-
+fraenk meint E und H sind frei
+e ist nur uart 0 und Timer/Counter3 Clock Input
 
 
 

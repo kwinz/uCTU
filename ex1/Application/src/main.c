@@ -2,6 +2,7 @@
 #include "glcd.h"
 #include "mp3.h"
 #include "rand.h"
+#include "sdcard.h"
 #include "spi.h"
 #include "tools.h"
 #include "wii_user.h"
@@ -34,21 +35,27 @@ void rcvButton(const uint8_t wii, const uint16_t buttonStates) {
 void rcvAccel(const uint8_t wii, const uint16_t x, const uint16_t y, const uint16_t z) {}
 void conCallback(const uint8_t wii, const connection_status_t status) {
   if (status == CONNECTED) {
-    PORTA = 0x0F;
+    // PORTA = 0x0F;
     // fail();
   } else {
-    PORTA++;
+    // PORTA++;
     wiiUserConnect(wii, _mac[0], &conCallback);
   }
 }
 
-static void dataRequestCallback(void) {}
+sdcard_block_t buffer;
+volatile uint32_t byteAddress = 5460224LU;
+volatile uint8_t count = 0;
+
+static void dataRequestCallback(void) {
+  //++PORTH;
+}
 
 void setup() {
-  DDRA = 0xFF;
-  PORTA = 0x00;
-  DDRD = 0xFF;
-  PORTD = 0x00;
+  // DDRA = 0xFF;
+  // PORTA = 0x00;
+  DDRH = 0xFF;
+  PORTH = 0x00;
 
   uint8_t wii = 0;
   error_t ret = wiiUserInit(&rcvButton, &rcvAccel);
@@ -79,16 +86,32 @@ void setup() {
 
   glcdDrawLine(a, b, &glcdInvertPixel);
 
-  spiInit();
-
   sei();
 
+  spiInit();
+
+  sdcardInit();
+
   mp3Init(&dataRequestCallback);
-  mp3SetVolume(0xA0);
-  mp3StartSineTest();
+  // mp3SetVolume(0xA0);
+
+  // PORTD++;
+
+  sdcardReadBlock(byteAddress, buffer);
+  while (mp3Busy())
+    ;
+  mp3SendMusic(buffer);
+  byteAddress += 32;
+
+  // mp3StartSineTest();
 }
 
 void background() {
+  if (!mp3Busy()) {
+    sdcardReadBlock(byteAddress, buffer);
+    mp3SendMusic(buffer);
+    byteAddress += 32;
+  }
 
   /*
     sleep_enable();
