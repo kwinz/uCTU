@@ -55,13 +55,49 @@ void setup() {
     PORTA = 0xAA;
     fail();
   }
+
+  glcdInit();
+
+  /*
+    rand_feed(true);
+    rand_feed(true);
+    rand_feed(false);
+    rand_feed(true);
+    rand_feed(true);
+    rand_feed(false);
+    rand_feed(true);
+    */
+
+  xy_point a = {0, 0};
+  xy_point b = {50, rand16() % 50U};
+
+  glcdDrawLine(a, b, &glcdInvertPixel);
 }
 
 void background() {
-  // sleep_enable();
-  // sei();
-  // sleep_cpu();
-  // sleep_disable();
+
+  /*
+    sleep_enable();
+    sei();
+    sleep_cpu();
+    sleep_disable();
+  */
+
+  /*
+  infinite_loop :
+  ; goto sleep
+  cli
+  ldi temp , (1<<SE )
+  out SMCR, temp
+  sei
+  sleep
+  rjmp infinite_loop
+  */
+
+  xy_point a = {0, 0};
+  xy_point b = {50, rand16() % 50U};
+
+  glcdDrawLine(a, b, &glcdInvertPixel);
 }
 
 int main(void) {
