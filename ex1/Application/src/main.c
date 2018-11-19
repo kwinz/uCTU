@@ -1,4 +1,5 @@
 #include "debug.h"
+#include "font.h"
 #include "glcd.h"
 #include "mp3.h"
 #include "rand.h"
@@ -17,6 +18,7 @@
 
 #include <math.h>
 
+extern const font Standard5x7;
 extern const uint8_t _mac[1][6];
 bool rumbler = false;
 
@@ -97,6 +99,8 @@ void setup() {
 
   // PORTD++;
 
+  mp3SetVolume(0xC0);
+
   sdcardReadBlock(byteAddress, buffer);
   while (mp3Busy())
     ;
@@ -131,10 +135,13 @@ void background() {
   rjmp infinite_loop
   */
 
-  xy_point a = {0, 0};
-  xy_point b = {50, rand16() % 50U};
+  // xy_point a = {0, 0};
+  // y_point b = {50, rand16() % 50U};
+  xy_point c = {5, 50};
 
-  glcdDrawLine(a, b, &glcdInvertPixel);
+  // glcdDrawLine(a, b, &glcdInvertPixel);
+
+  glcdDrawText("olol", c, &Standard5x7, &glcdInvertPixel);
 
   if (rand16() < 200) {
     glcdSetYShift(glcdGetYShift() + 1);
