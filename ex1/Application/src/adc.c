@@ -97,7 +97,7 @@ void adcInit(void) {
   ADCSRB &= (1 << 7) | (1 << 5) | (1 << 4);
 
   // 50000U
-  start16BitTimer(TIMER5, 50000U, &randfeed);
+  start16BitTimer(TIMER5, 4500U, &randfeed);
 }
 
 ISR(ADC_vect) {
