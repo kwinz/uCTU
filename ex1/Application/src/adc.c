@@ -1,5 +1,7 @@
 
 #include "adc.h"
+#include "mp3.h"
+#include "rand.h"
 #include "timer_utils.h"
 
 #include <stdbool.h>
@@ -7,6 +9,7 @@
 
 #include <avr/interrupt.h>
 #include <avr/io.h>
+#include <tools.h>
 
 /**
  * 26. ADC, page 275
@@ -46,13 +49,14 @@ PK0 = ADC8
 PK7 = ADC15
 */
 
-volatile bool volumeMode = false;
+static volatile bool volumeMode = false;
 
 static void sampleRand(void) {
+  PORTH++;
   // for rand we use
   // MUX5:0 001111  ADC3,ADC2 200× gain
   // write the 5 bits to ADMUX. ADCSRB is already set
-  ADMUX = (ADMUX & 0xE0) | 0x1F;
+  ADMUX = (ADMUX & 0xE0) | 0x0F;
 }
 
 static void sampleVolume() {
@@ -66,8 +70,12 @@ static void sampleVolume() {
 }
 
 static void randfeed() {
-  PORTH++;
-  sampleVolume();
+
+  if (volumeMode) {
+    sampleVolume();
+  } else {
+    sampleRand();
+  }
 
   // ADEN ADSC ADATE ADIF ADIE ADPS2 ADPS1 ADPS0
   ADCSRA = (1 << ADEN) | (1 << ADIE) | (1 << ADSC);
@@ -90,14 +98,38 @@ void adcInit(void) {
   // set all bits to 0 except for reserved ones
   ADCSRB &= (1 << 7) | (1 << 5) | (1 << 4);
 
-  start16BitTimer(TIMER5, 1000000U, &randfeed);
+  // 50000U
+  start16BitTimer(TIMER5, 50000U, &randfeed);
 }
 
 ISR(ADC_vect) {
-  // PORTL = 0xFF;
 
-  // result in ADC (16bit)
-  PORTK = ADC >> 2;
+  if (!HAVE_MP3_BOARD) {
+    rand_feed(ADC);
+  } else if (!volumeMode) {
+    rand_feed(ADC);
+    volumeMode = true;
+  } else {
+    // result in ADC (16bit)
+    uint16_t volume = ADC >> 2;
+
+    volume =
+        255 - ((255 - volume) * (255 - volume) / 255 * (255 - volume) / 255 * (255 - volume) / 255);
+
+    if (volume > 255) {
+      // PORTA = 0xAA;
+      fail();
+    }
+
+    if (!usingSPI) {
+      sei();
+      // fixme: better do this outside ISR
+      // FIXME: not on every call
+      mp3SetVolume(volume);
+      cli();
+    }
+    volumeMode = false;
+  }
 
   // turn timer off;
   ADCSRA = 0;

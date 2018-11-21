@@ -1,3 +1,4 @@
+#include "adc.h"
 #include "debug.h"
 #include "font.h"
 #include "glcd.h"
@@ -18,9 +19,6 @@
 #include <avr/sleep.h>
 
 #include <math.h>
-
-#define HAVE_MP3_BOARD false
-#define HAVE_BLUETOOTH_BOARD false
 
 extern const font Standard5x7;
 extern const uint8_t _mac[1][6];
@@ -104,8 +102,6 @@ void setup() {
 
     // PORTD++;
 
-    mp3SetVolume(0xC0);
-
     sdcardReadBlock(byteAddress, buffer);
     while (mp3Busy())
       ;
@@ -131,10 +127,23 @@ void setup() {
   */
 
 void background() {
-  if (HAVE_MP3_BOARD && !mp3Busy()) {
-    sdcardReadBlock(byteAddress, buffer);
-    mp3SendMusic(buffer);
-    byteAddress += 32;
+
+  if (HAVE_MP3_BOARD) {
+    cli();
+    if (!usingSPI) {
+      usingSPI = true;
+      sei();
+      if (!mp3Busy()) {
+
+        // we disable interrupts during mp3 send because
+        // we get audio glitches if someone else accesses the SPI
+        sdcardReadBlock(byteAddress, buffer);
+        mp3SendMusic(buffer);
+        //
+        byteAddress += 32;
+      }
+      usingSPI = false;
+    }
   }
 
   /*

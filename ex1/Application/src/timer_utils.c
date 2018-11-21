@@ -182,6 +182,7 @@ void start16BitTimer(Timer16Bit_t timer, uint32_t usec, void (*periodicCallback)
       tCCRnB |= (1 << CS30);
       tCCRnB |= (1 << CS32);
     } else {
+      PORTA = 0xAA;
       fail();
     }
   }
@@ -213,6 +214,7 @@ void start16BitTimer(Timer16Bit_t timer, uint32_t usec, void (*periodicCallback)
     TIMSK5 |= _BV(OCIE5A);
   } break;
   default:
+    PORTA = 0xAA;
     fail();
   }
 
