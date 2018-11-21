@@ -15,4 +15,8 @@ selected as the positive input terminal. If 1× or 10× gain is used, 8 bit reso
 expected. If 200× gain is used, 7 bit resolution can be expected.
 */
 
-void adcInit(void) { void setup16BitTimer(void); }
+void randfeed(){
+
+};
+
+void adcInit(void) { start16BitTimer(TIMER5, 5000LL, &randfeed); }

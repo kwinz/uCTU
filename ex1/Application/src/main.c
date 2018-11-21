@@ -57,10 +57,12 @@ static void dataRequestCallback(void) {
 void toggleLED(void) { ++PORTH; }
 
 void setup() {
-  // DDRA = 0xFF;
-  // PORTA = 0x00;
   DDRH = 0xFF;
   PORTH = 0x00;
+  DDRK = 0xFF;
+  PORTK = 0x00;
+  DDRL = 0xFF;
+  PORTL = 0x00;
 
   uint8_t wii = 0;
   error_t ret = wiiUserInit(&rcvButton, &rcvAccel);
@@ -68,6 +70,7 @@ void setup() {
     PORTA = 0xAA;
     fail();
   }
+
   ret = wiiUserConnect(wii, _mac[0], &conCallback);
   if (ret != SUCCESS) {
     PORTA = 0xAA;
@@ -100,9 +103,9 @@ void setup() {
   mp3SendMusic(buffer);
   byteAddress += 32;
 
-  start16BitTimer(TIMER5, 4100000LL, &toggleLED);
+  // start16BitTimer(TIMER5, 4100000LL, &toggleLED);
   // start16BitTimer(TIMER3, 100LL, &toggleLED);
-  ++PORTH;
+  //++PORTH;
 
   // mp3StartSineTest();
 }
