@@ -155,10 +155,10 @@ void start16BitTimer(Timer16Bit_t timer, uint32_t usec, void (*periodicCallback)
   Prescaler_t prescaler;
   if (usec < 32768) {
     prescaler = Prescaler8;
-    oCRnA = (F_CPU / 1000000U / 8) * usec;
+    oCRnA = (F_CPU / 1000000UL / 8) * usec;
   } else {
     prescaler = Prescaler1024;
-    oCRnA = (F_CPU / 1000000U) * (usec / 1024);
+    oCRnA = (F_CPU / 1000000UL) * (usec / 1024);
   }
 
   // setup register B
@@ -177,7 +177,7 @@ void start16BitTimer(Timer16Bit_t timer, uint32_t usec, void (*periodicCallback)
     */
     // no prescaling
     if (prescaler == Prescaler8) {
-      tCCRnB |= (1 << CS30);
+      tCCRnB |= (1 << CS31);
     } else if (prescaler == Prescaler1024) {
       tCCRnB |= (1 << CS30);
       tCCRnB |= (1 << CS32);
