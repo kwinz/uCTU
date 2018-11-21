@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "timer_utils.h"
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <util/atomic.h>
@@ -38,7 +39,7 @@ static volatile uint8_t reader = 0;
 static volatile uint8_t writer = 0;
 static volatile bool calling = false;
 static volatile uint8_t sendbuffer;
-static volatile bool resetting = false;
+static volatile bool resetting = true;
 static volatile bool bufferedSendBytePresent = false;
 
 static bool hwTXBuferEmpty() {
@@ -48,6 +49,23 @@ static bool hwTXBuferEmpty() {
 }
 
 static bool isRTS() { return PINJ & (1 << RTS_PIN); }
+
+static void trySendFromISR() {
+  if (!resetting && bufferedSendBytePresent && hwTXBuferEmpty() && !isRTS()) {
+    UDR3 = sendbuffer;
+    bufferedSendBytePresent = false;
+    sei();
+    sndCallbackGlobal();
+  }
+}
+
+void stopReset() {
+  TIMSK1 &= ~_BV(OCIE1A);
+  PORTJ = PORTJ | (1 << 5);
+  resetting = false;
+  trySendFromISR();
+  sei();
+}
 
 error_t halWT41FcUartInit(void (*sndCallback)(), void (*rcvCallback)(uint8_t)) {
   sndCallbackGlobal = sndCallback;
@@ -71,21 +89,23 @@ error_t halWT41FcUartInit(void (*sndCallback)(), void (*rcvCallback)(uint8_t)) {
     // DDRJ = 0xFF;
     DDRJ = DDRJ | (1 << 5);
     PORTJ = PORTJ & ~(1 << 5);
-    busyWaitMS(5);
-    PORTJ = PORTJ | (1 << 5);
+    // reset for 5ms = 5000us
+    start16BitTimer(TIMER1, 5000U, &stopReset);
   }
   return SUCCESS;
 }
 
 error_t halWT41FcUartSend(uint8_t byte) {
+  cli();
   if (!resetting && hwTXBuferEmpty() && !isRTS()) {
     UDR3 = byte;
+    sei();
+    sndCallbackGlobal();
   } else {
-    cli();
     sendbuffer = byte;
     bufferedSendBytePresent = true;
-    sei();
   }
+  sei();
   return SUCCESS;
 }
 
@@ -115,20 +135,12 @@ ISR(USART3_RX_vect) {
   sei();
 }
 
-static void trySendFromISR() {
-  if (!resetting && bufferedSendBytePresent && hwTXBuferEmpty() && !isRTS()) {
-    UDR3 = sendbuffer;
-    bufferedSendBytePresent = false;
-  }
-}
-
 ISR(USART3_TX_vect) {
-  // try to send new byte
   trySendFromISR();
-
   sei();
-  // send callback for the previous written byte
-  sndCallbackGlobal();
 }
 
-ISR(PCINT1_vect) { trySendFromISR(); }
+ISR(PCINT1_vect) {
+  trySendFromISR();
+  sei();
+}
