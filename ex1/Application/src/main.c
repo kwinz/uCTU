@@ -9,6 +9,7 @@
 #include "spi.h"
 #include "timer_utils.h"
 #include "tools.h"
+#include "util.h"
 #include "wii_user.h"
 
 #include "hal_wt41_fc_uart.h"
@@ -30,6 +31,7 @@ volatile bool wantTick = false;
 void newTick(void) { wantTick = true; }
 
 void setRumblerCallback(const uint8_t wii, const error_t status) {}
+
 void rcvButton(const uint8_t wii, const uint16_t buttonStates) {
   // 1 = 2
   // 2 = 1
@@ -42,12 +44,12 @@ void rcvButton(const uint8_t wii, const uint16_t buttonStates) {
   }
 }
 
+static void setAccelCallback(uint8_t wii, error_t status) {}
+
 void conCallback(const uint8_t wii, const connection_status_t status) {
   if (status == CONNECTED) {
-    // PORTA = 0x0F;
-    // fail();
+    wiiUserSetAccel(wii, true, &setAccelCallback);
   } else {
-    // PORTA++;
     wiiUserConnect(wii, _mac[0], &conCallback);
   }
 }
