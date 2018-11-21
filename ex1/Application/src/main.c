@@ -1,6 +1,7 @@
 #include "adc.h"
 #include "debug.h"
 #include "font.h"
+#include "game.h"
 #include "glcd.h"
 #include "mp3.h"
 #include "rand.h"
@@ -24,6 +25,10 @@ extern const font Standard5x7;
 extern const uint8_t _mac[1][6];
 bool rumbler = false;
 
+volatile bool wantTick = false;
+
+void newTick(void) { wantTick = true; }
+
 void setRumblerCallback(const uint8_t wii, const error_t status) {}
 void rcvButton(const uint8_t wii, const uint16_t buttonStates) {
   // 1 = 2
@@ -36,7 +41,7 @@ void rcvButton(const uint8_t wii, const uint16_t buttonStates) {
     wiiUserSetRumbler(wii, rumbler, &setRumblerCallback);
   }
 }
-void rcvAccel(const uint8_t wii, const uint16_t x, const uint16_t y, const uint16_t z) {}
+
 void conCallback(const uint8_t wii, const connection_status_t status) {
   if (status == CONNECTED) {
     // PORTA = 0x0F;
@@ -52,10 +57,9 @@ volatile uint32_t byteAddress = 5460224LU;
 volatile uint8_t count = 0;
 
 static void dataRequestCallback(void) {
-  //++PORTH;
+  // we are woken up from sleep due to the callback interrupt
+  // don't do anything else here
 }
-
-void toggleLED(void) { ++PORTH; }
 
 void setup() {
   DDRH = 0xFF;
@@ -99,41 +103,18 @@ void setup() {
   if (HAVE_MP3_BOARD) {
     mp3Init(&dataRequestCallback);
     // mp3SetVolume(0xA0);
-
-    // PORTD++;
-
-    sdcardReadBlock(byteAddress, buffer);
-    while (mp3Busy())
-      ;
-    mp3SendMusic(buffer);
-    byteAddress += 32;
   }
 
-  // start16BitTimer(TIMER5, 4100000LL, &toggleLED);
-  // start16BitTimer(TIMER3, 100LL, &toggleLED);
-  //++PORTH;
-
   // mp3StartSineTest();
-}
 
-/*
-  rand_feed(true);
-  rand_feed(true);
-  rand_feed(false);
-  rand_feed(true);
-  rand_feed(true);
-  rand_feed(false);
-  rand_feed(true);
-  */
+  start16BitTimer(TIMER3, 4500U, &newTick);
+
+  set_sleep_mode(SLEEP_MODE_IDLE);
+}
 
 static int8_t oldVolume = 0;
 
 void background() {
-
-  // game fills the whole 128x64pix screen
-  // ball must start at the bottom, in the center
-
-  // player must have the possiblity to start a new game and also access the high score table
 
   if (HAVE_MP3_BOARD) {
     if (!mp3Busy()) {
@@ -157,43 +138,26 @@ void background() {
       byteAddress += 32;
     }
   }
-
-  /*
-    sleep_enable();
-    sei();
-    sleep_cpu();
-    sleep_disable();
-  */
-
-  /*
-  infinite_loop :
-  ; goto sleep
-  cli
-  ldi temp , (1<<SE )
-  out SMCR, temp
-  sei
-  sleep
-  rjmp infinite_loop
-  */
-
-  // xy_point a = {0, 0};
-  // y_point b = {50, rand16() % 50U};
-  xy_point c = {5, 50};
-
-  // glcdDrawLine(a, b, &glcdInvertPixel);
-
-  // glcdDrawText("olol", c, &Standard5x7, &glcdInvertPixel);
-
-  if (rand16() < 200) {
-    glcdSetYShift(glcdGetYShift() + 1);
-  }
 }
 
 int main(void) {
   setup();
 
   while (true) {
+    cli();
+    if (wantTick) {
+      wantTick = false;
+      sei();
+      gameTick();
+    }
+    sei();
+
     background();
+
+    sleep_enable();
+    sei();
+    sleep_cpu();
+    sleep_disable();
   }
   return 0;
 }
