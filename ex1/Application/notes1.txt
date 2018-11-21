@@ -10,6 +10,15 @@ Port J USART3
 every USART can operate also in SPI mode
 ==============================
 
+fraenk meint E und H sind frei
+e ist nur uart 0 und Timer/Counter3 Clock Input
+
+H geht auf jeden fall
+C vielleicht
+k und L vielleicht
+
+====================
+
 UDRn – USART I/O Data Register n
 transmit buffer can only be written when the UDREn Flag in the UCSRnA Register is set.
 do not use Read-Modify-Write instructions (SBI and CBI) on this location. Be careful when using bit test instructions (SBIC and SBIS), since these also will change the state of the FIFO.
@@ -58,10 +67,6 @@ von informatik fachschaft
 
 timer 10ms
 add to pool
-
-
-fraenk meint E und H sind frei
-e ist nur uart 0 und Timer/Counter3 Clock Input
 
 
 
