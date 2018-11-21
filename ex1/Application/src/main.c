@@ -3,6 +3,7 @@
 #include "font.h"
 #include "game.h"
 #include "glcd.h"
+#include "lcd.h"
 #include "mp3.h"
 #include "rand.h"
 #include "sdcard.h"
@@ -86,7 +87,9 @@ void setup() {
     }
   }
 
+  initLcd();
   glcdInit();
+  clearScreen();
 
   xy_point a = {0, 0};
   xy_point b = {50, rand16() % 50U};
@@ -120,7 +123,7 @@ void background() {
 
   if (HAVE_MP3_BOARD) {
     if (!mp3Busy()) {
-      PORTK++;
+      // PORTK++;
       cli();
       if (haveNewVolume) {
         haveNewVolume = false;

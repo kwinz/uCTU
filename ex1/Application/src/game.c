@@ -1,6 +1,7 @@
 #include "game.h"
 #include "font.h"
 #include "glcd.h"
+#include "lcd.h"
 #include "mp3.h"
 #include "rand.h"
 #include "tools.h"
@@ -14,16 +15,22 @@ static xy_point old_ball = {5, 50};
 void rcvAccel(const uint8_t wii, const uint16_t x, const uint16_t y, const uint16_t z) {
   // https://wiibrew.org/wiki/Wiimote#Accelerometer
 
-  // PORTK = lo8(x);
-  // PORTL = hi8(x);
+  PORTK = lo8(x);
+  PORTL = hi8(x);
+
+  // dispUint8(hi8(x), 0, 0);
 
   // fail();
+  cli();
+  xy_point new_ball = ball;
 
-  if (x | 0x0200) {
-    ball.x -= ((x & 0xFF) / 128);
+  if (hi8(x) == 1) {
+    ball.x += 1; //((x & 0xFF) / 128);
   } else {
-    ball.x += ((x & 0xFF) / 128);
+    ball.x -= 1; //((x & 0xFF) / 128);
   }
+  ball.x %= 128;
+  sei();
 }
 
 void gameTick(void) {
@@ -31,7 +38,7 @@ void gameTick(void) {
   xy_point new_ball = ball;
   sei();
 
-  new_ball.x = new_ball.x / 2;
+  // new_ball.x = new_ball.x / 2;
 
   ticks++;
 

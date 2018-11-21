@@ -27,7 +27,7 @@ all: $(EXEC) install
 
 
 $(EXEC): $(OBJECTS)
-	@$(LD) $(OBJECTS) $(CFLAGS) $(LDFLAGS) -o $(BINDIR)/$@
+	@$(LD) $(OBJECTS) libs/lcd.o $(CFLAGS) $(LDFLAGS) -o $(BINDIR)/$@
 	@echo "Linking complete!"
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c

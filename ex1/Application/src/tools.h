@@ -20,3 +20,7 @@ void busyWaitMS(const uint16_t ms);
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 #endif
+
+// source: https://www.avrfreaks.net/forum/c-equivalent-lo8-and-hi8
+#define lo8(x) ((x)&0xff)
+#define hi8(x) ((x) >> 8)
