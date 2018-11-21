@@ -100,7 +100,8 @@ void setup() {
   mp3SendMusic(buffer);
   byteAddress += 32;
 
-  start16BitTimer(&toggleLED);
+  start16BitTimer(TIMER5, 4100000LL, &toggleLED);
+  // start16BitTimer(TIMER3, 100LL, &toggleLED);
   ++PORTH;
 
   // mp3StartSineTest();

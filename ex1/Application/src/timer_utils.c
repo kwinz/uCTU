@@ -125,12 +125,16 @@ void setup8BitTimer(void) {
   sei();
 }
 
-static void (*periodicCallbackGlobal)(void);
+typedef enum { Prescaler8, Prescaler1024 } Prescaler_t;
 
-void start16BitTimer(void (*periodicCallback)(void)) {
+static void (*periodicCallback1)(void);
+static void (*periodicCallback3)(void);
+static void (*periodicCallback4)(void);
+static void (*periodicCallback5)(void);
+
+// can sleep up to 4194304 micro-seconds (4.19s)
+void start16BitTimer(Timer16Bit_t timer, uint32_t usec, void (*periodicCallback)(void)) {
   cli();
-
-  periodicCallbackGlobal = periodicCallback;
 
   /*
   use CTC mode; see page 148 of manual
@@ -141,24 +145,27 @@ void start16BitTimer(void (*periodicCallback)(void)) {
   // setup register A
   {
     // clear all bits (including WGMn1 and WGMn0 for CTC)
+    TCCR1A = 0;
     TCCR3A = 0;
+    TCCR4A = 0;
+    TCCR5A = 0;
   }
 
-  // TCNT3H = 0U;
-  // TCNT3L = 0U;
-
-  // OCR1A = ((250 * F_CPU) / (64 * 1000U)) - 1;
-  // 5ms
-  OCR3A = 10000U;
+  uint16_t oCRnA;
+  Prescaler_t prescaler;
+  if (usec < 32768) {
+    prescaler = Prescaler8;
+    oCRnA = (F_CPU / 1000000U / 8) * usec;
+  } else {
+    prescaler = Prescaler1024;
+    oCRnA = (F_CPU / 1000000U) * (usec / 1024);
+  }
 
   // setup register B
+  uint8_t tCCRnB;
   {
-    uint8_t tccr1B_target = TCCR3B;
-    // clear all bits except for reserved bit 5
-    tccr1B_target &= (1 << 5);
-
     // CTC
-    tccr1B_target |= (1 << WGM32);
+    tCCRnB = (1 << WGM32);
 
     /*
     CS02 CS01 CS00
@@ -169,27 +176,66 @@ void start16BitTimer(void (*periodicCallback)(void)) {
     1 0 1         clk I/O /1024 (From prescaler)
     */
     // no prescaling
-    tccr1B_target |= (1 << CS30);
-    // tccr1B_target |= (1 << CS32);
-
-    TCCR3B = tccr1B_target;
+    if (prescaler == Prescaler8) {
+      tCCRnB |= (1 << CS30);
+    } else if (prescaler == Prescaler1024) {
+      tCCRnB |= (1 << CS30);
+      tCCRnB |= (1 << CS32);
+    } else {
+      fail();
+    }
   }
 
-  // Set Timer/Countern Output Compare A Match interrupt
-  TIMSK3 |= _BV(OCIE3A);
+  switch (timer) {
+  case (TIMER1): {
+    OCR1A = oCRnA;
+    periodicCallback1 = periodicCallback;
+    // clear all bits except for reserved bit 5 and then add the bits from tCCRnB
+    TCCR1B = (TCCR1B & (1 << 5)) | tCCRnB;
+    TIMSK1 |= _BV(OCIE1A);
+  } break;
+  case (TIMER3): {
+    OCR3A = oCRnA;
+    periodicCallback3 = periodicCallback;
+    TCCR3B = (TCCR3B & (1 << 5)) | tCCRnB;
+    TIMSK3 |= _BV(OCIE3A);
+  } break;
+  case (TIMER4): {
+    OCR4A = oCRnA;
+    periodicCallback4 = periodicCallback;
+    TCCR4B = (TCCR4B & (1 << 5)) | tCCRnB;
+    TIMSK4 |= _BV(OCIE4A);
+  } break;
+  case (TIMER5): {
+    OCR5A = oCRnA;
+    periodicCallback5 = periodicCallback;
+    TCCR5B = (TCCR5B & (1 << 5)) | tCCRnB;
+    TIMSK5 |= _BV(OCIE5A);
+  } break;
+  default:
+    fail();
+  }
 
   sei();
 }
 
-/*
-ISR(TIMER3_OVF_vect) {
-  periodicCallbackGlobal();
+ISR(TIMER1_COMPA_vect) {
+  periodicCallback1();
+  // TIMSK1 &= ~_BV(OCIE1A);
   sei();
 }
-*/
 
 ISR(TIMER3_COMPA_vect) {
-  periodicCallbackGlobal();
-  TIMSK3 &= ~_BV(OCIE3A);
+  periodicCallback3();
+  sei();
+}
+
+ISR(TIMER4_COMPA_vect) {
+  periodicCallback4();
+  sei();
+}
+
+ISR(TIMER5_COMPA_vect) {
+  periodicCallback5();
   sei();
 }
