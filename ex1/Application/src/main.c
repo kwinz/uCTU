@@ -19,6 +19,9 @@
 
 #include <math.h>
 
+#define HAVE_MP3_BOARD false
+#define HAVE_BLUETOOTH_BOARD false
+
 extern const font Standard5x7;
 extern const uint8_t _mac[1][6];
 bool rumbler = false;
@@ -64,17 +67,19 @@ void setup() {
   DDRL = 0xFF;
   PORTL = 0x00;
 
-  uint8_t wii = 0;
-  error_t ret = wiiUserInit(&rcvButton, &rcvAccel);
-  if (ret != SUCCESS) {
-    PORTA = 0xAA;
-    fail();
-  }
+  if (HAVE_BLUETOOTH_BOARD) {
+    uint8_t wii = 0;
+    error_t ret = wiiUserInit(&rcvButton, &rcvAccel);
+    if (ret != SUCCESS) {
+      PORTA = 0xAA;
+      fail();
+    }
 
-  ret = wiiUserConnect(wii, _mac[0], &conCallback);
-  if (ret != SUCCESS) {
-    PORTA = 0xAA;
-    fail();
+    ret = wiiUserConnect(wii, _mac[0], &conCallback);
+    if (ret != SUCCESS) {
+      PORTA = 0xAA;
+      fail();
+    }
   }
 
   glcdInit();
@@ -86,22 +91,27 @@ void setup() {
 
   sei();
 
-  spiInit();
+  if (HAVE_MP3_BOARD) {
+    spiInit();
+    sdcardInit();
+  }
 
-  sdcardInit();
+  adcInit();
 
-  mp3Init(&dataRequestCallback);
-  // mp3SetVolume(0xA0);
+  if (HAVE_MP3_BOARD) {
+    mp3Init(&dataRequestCallback);
+    // mp3SetVolume(0xA0);
 
-  // PORTD++;
+    // PORTD++;
 
-  mp3SetVolume(0xC0);
+    mp3SetVolume(0xC0);
 
-  sdcardReadBlock(byteAddress, buffer);
-  while (mp3Busy())
-    ;
-  mp3SendMusic(buffer);
-  byteAddress += 32;
+    sdcardReadBlock(byteAddress, buffer);
+    while (mp3Busy())
+      ;
+    mp3SendMusic(buffer);
+    byteAddress += 32;
+  }
 
   // start16BitTimer(TIMER5, 4100000LL, &toggleLED);
   // start16BitTimer(TIMER3, 100LL, &toggleLED);
@@ -121,7 +131,7 @@ void setup() {
   */
 
 void background() {
-  if (!mp3Busy()) {
+  if (HAVE_MP3_BOARD && !mp3Busy()) {
     sdcardReadBlock(byteAddress, buffer);
     mp3SendMusic(buffer);
     byteAddress += 32;

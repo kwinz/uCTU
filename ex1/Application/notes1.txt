@@ -8,6 +8,23 @@ Port D USART1
 Port H USART2
 Port J USART3
 every USART can operate also in SPI mode
+
+PF0 = ADC0
+PF7 = ACD7
+PK0 = ADC8
+PK7 = ADC15
+
+ADC portF and portK (ich benutze nur F)
+
+adc values auf board 55
+von 44 bis 253
+
+adc values auf board 47
+von random(44) bis 255-7
+
+adc values auf board 45
+von 32+16=48 bis 255-7
+
 ==============================
 
 fraenk meint E und H sind frei

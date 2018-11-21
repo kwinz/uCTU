@@ -1,6 +1,11 @@
 
 #include "adc.h"
 #include "timer_utils.h"
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#include <avr/interrupt.h>
 #include <avr/io.h>
 
 /**
@@ -13,10 +18,87 @@ two sections of 8 channels where in each section seven differential analog input
 a common negative terminal (ADC1/ADC9), while any other ADC input in that section can be
 selected as the positive input terminal. If 1× or 10× gain is used, 8 bit resolution can be
 expected. If 200× gain is used, 7 bit resolution can be expected.
+
+
+In Single Conversion mode, always select the channel before starting the conversion. The chan-
+nel selection may be changed one ADC clock cycle after writing one to ADSC. However, the
+simplest method is to wait for the conversion to complete before changing the channel selection.
+In Free Running mode, always select the channel before starting the first conversion. The chan-
+nel selection may be changed one ADC clock cycle after writing one to ADSC. However, the
+simplest method is to wait for the first conversion to complete, and then change the channel
+selection. Since the next conversion has already started automatically, the next result will reflect
+the previous channel selection. Subsequent conversions will reflect the new channel selection.
+When switching to a differential gain channel, the first conversion result may have a poor accu-
+racy due to the required settling time for the automatic offset cancellation circuitry. The user
+should preferably disregard the first conversion result.
+
+ADMUX can be safely updated in the following ways:
+1! When ADATE (Bit 5 – ADATE: ADC Auto Trigger Enable) or ADEN is cleared. (Markus: they mean
+both?!)
+2. During conversion, minimum one ADC clock cycle after the trigger event.
+3! After a conversion, before the Interrupt Flag used as trigger source is cleared.
 */
 
-void randfeed(){
+/*
+PF0 = ADC0
+PF7 = ACD7
+PK0 = ADC8
+PK7 = ADC15
+*/
 
-};
+volatile bool volumeMode = false;
 
-void adcInit(void) { start16BitTimer(TIMER5, 5000LL, &randfeed); }
+static void sampleRand(void) {
+  // for rand we use
+  // MUX5:0 001111  ADC3,ADC2 200× gain
+  // write the 5 bits to ADMUX. ADCSRB is already set
+  ADMUX = (ADMUX & 0xE0) | 0x1F;
+}
+
+static void sampleVolume() {
+  // the potentiometer can be connected to PF0-PF3 via jumpers
+  // on this board it is PF0
+  // BIG AVR 6 Development System, page 16
+
+  // therefore MUX5:0 is 000000
+  // write the 5 bits to ADMUX. ADCSRB is already set
+  ADMUX = (ADMUX & 0xE0) | 0;
+}
+
+static void randfeed() {
+  PORTH++;
+  sampleVolume();
+
+  // ADEN ADSC ADATE ADIF ADIE ADPS2 ADPS1 ADPS0
+  ADCSRA = (1 << ADEN) | (1 << ADIE) | (1 << ADSC);
+}
+
+void adcInit(void) {
+
+  // DIDR0 – Digital Input Disable Register 0
+  // turn off digital io on port F to save power (those are adc0-7 or PINF)
+  DIDR0 = 0xFF;
+
+  // REFS1 REFS0 ADLAR MUX4 MUX3 MUX2 MUX1 MUX0
+  // Write one to ADLAR to left adjust the result. Otherwise, the result is right adjusted. Changing
+  // the ADLAR bit will affect the ADC Data Register immediately, regardless of any ongoing.
+  // conversions. (Markus: I decided not to use this)
+  ADMUX = (1 << REFS0);
+
+  //– ACME – – MUX5 ADTS2 ADTS1 ADTS0
+  // using Free Running mode for now, but "Timer/Counter1 Compare Match B" sounds interresting
+  // set all bits to 0 except for reserved ones
+  ADCSRB &= (1 << 7) | (1 << 5) | (1 << 4);
+
+  start16BitTimer(TIMER5, 1000000U, &randfeed);
+}
+
+ISR(ADC_vect) {
+  // PORTL = 0xFF;
+
+  // result in ADC (16bit)
+  PORTK = ADC >> 2;
+
+  // turn timer off;
+  ADCSRA = 0;
+}
