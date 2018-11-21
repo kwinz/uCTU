@@ -5,6 +5,7 @@
 #include "rand.h"
 #include "sdcard.h"
 #include "spi.h"
+#include "timer_utils.h"
 #include "tools.h"
 #include "wii_user.h"
 
@@ -53,6 +54,8 @@ static void dataRequestCallback(void) {
   //++PORTH;
 }
 
+void toggleLED(void) { ++PORTH; }
+
 void setup() {
   // DDRA = 0xFF;
   // PORTA = 0x00;
@@ -72,16 +75,6 @@ void setup() {
   }
 
   glcdInit();
-
-  /*
-    rand_feed(true);
-    rand_feed(true);
-    rand_feed(false);
-    rand_feed(true);
-    rand_feed(true);
-    rand_feed(false);
-    rand_feed(true);
-    */
 
   xy_point a = {0, 0};
   xy_point b = {50, rand16() % 50U};
@@ -107,8 +100,21 @@ void setup() {
   mp3SendMusic(buffer);
   byteAddress += 32;
 
+  start16BitTimer(&toggleLED);
+  ++PORTH;
+
   // mp3StartSineTest();
 }
+
+/*
+  rand_feed(true);
+  rand_feed(true);
+  rand_feed(false);
+  rand_feed(true);
+  rand_feed(true);
+  rand_feed(false);
+  rand_feed(true);
+  */
 
 void background() {
   if (!mp3Busy()) {
@@ -141,7 +147,7 @@ void background() {
 
   // glcdDrawLine(a, b, &glcdInvertPixel);
 
-  glcdDrawText("olol", c, &Standard5x7, &glcdInvertPixel);
+  // glcdDrawText("olol", c, &Standard5x7, &glcdInvertPixel);
 
   if (rand16() < 200) {
     glcdSetYShift(glcdGetYShift() + 1);

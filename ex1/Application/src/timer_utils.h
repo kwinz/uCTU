@@ -1,3 +1,3 @@
 #pragma once
 
-void setup16BitTimer(void);
+void start16BitTimer(void (*periodicCallback)(void));

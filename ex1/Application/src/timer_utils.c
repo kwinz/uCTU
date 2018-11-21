@@ -73,17 +73,123 @@ sei
 // counter resolution. In CTC mode the counter is cleared to zero when the counter value (TCNT2)
 // matches the OCR2A.
 
+/*
+        fclk_I/O
+f  = ----------------------
+       N ⋅ ( 1 + OCRnA )
+
+wherby N is the prescaler
+
+*/
+
 // we have to be able to make 5ms
 // 16.6ms
 
-void setup16BitTimer(void) {
+void setup8BitTimer(void) {
   cli();
-  /* Set up timer interrupt */
-  TCCR1A &= ~(_BV(COM1A1) | _BV(COM1A0) | _BV(COM1B1) | _BV(COM1B0) | _BV(COM1C1) | _BV(COM1C0) |
-              _BV(WGM11) | _BV(WGM10));
-  TCCR1B &= ~(_BV(ICNC1) | _BV(WGM13) | _BV(ICES1) | _BV(CS12) | _BV(CS11) | _BV(CS10));
-  OCR1A = ((250 * F_CPU) / (64 * 1000U)) - 1;
-  TIMSK1 |= _BV(OCIE1A);
-  TCCR1B |= _BV(CS11) | _BV(CS10) | _BV(WGM12);
+
+  // setup register A
+  {
+    // clear all bits except for the reserved ones
+    // we don't want to use any compare match outputs
+    uint8_t tccr2A_target = TCCR2A & ((1 < 2) | (1 < 3));
+    // use CTC mode; see page 131 of manual
+    tccr2A_target |= (1 << WGM01);
+    TCCR2A = tccr2A_target;
+  }
+
+  // setup register B
+  {
+    uint8_t tccr2B_target = TCCR2B;
+    // clear WGM02 for CTC
+    tccr2B_target &= ~(1 << WGM02);
+    /*
+    CS02 CS01 CS00
+    0 0 1         clk I/O /(No prescaling)
+    0 1 0         clk I/O /8 (From prescaler)
+    0 1 1         clk I/O /64 (From prescaler)
+    1 0 0         clk I/O /256 (From prescaler)
+    1 0 1         clk I/O /1024 (From prescaler)
+    */
+    // no prescaling
+    tccr2B_target |= (1 << CS00);
+    TCCR2B = tccr2B_target;
+  }
+
+  { OCR0A = 100; }
+
+  TCNT0 = 0;
+
+  // FIXME: unfinshed
+
+  sei();
+}
+
+static void (*periodicCallbackGlobal)(void);
+
+void start16BitTimer(void (*periodicCallback)(void)) {
+  cli();
+
+  periodicCallbackGlobal = periodicCallback;
+
+  /*
+  use CTC mode; see page 148 of manual
+  WGMn3 | WGMn2 (CTCn) | WGMn1 (PWMn1) | WGMn0 (PWMn0)
+  CTC = 0 | 1 |  0 | 0
+  */
+
+  // setup register A
+  {
+    // clear all bits (including WGMn1 and WGMn0 for CTC)
+    TCCR3A = 0;
+  }
+
+  // TCNT3H = 0U;
+  // TCNT3L = 0U;
+
+  // OCR1A = ((250 * F_CPU) / (64 * 1000U)) - 1;
+  // 5ms
+  OCR3A = 10000U;
+
+  // setup register B
+  {
+    uint8_t tccr1B_target = TCCR3B;
+    // clear all bits except for reserved bit 5
+    tccr1B_target &= (1 << 5);
+
+    // CTC
+    tccr1B_target |= (1 << WGM32);
+
+    /*
+    CS02 CS01 CS00
+    0 0 1         clk I/O /(No prescaling)
+    0 1 0         clk I/O /8 (From prescaler)
+    0 1 1         clk I/O /64 (From prescaler)
+    1 0 0         clk I/O /256 (From prescaler)
+    1 0 1         clk I/O /1024 (From prescaler)
+    */
+    // no prescaling
+    tccr1B_target |= (1 << CS30);
+    // tccr1B_target |= (1 << CS32);
+
+    TCCR3B = tccr1B_target;
+  }
+
+  // Set Timer/Countern Output Compare A Match interrupt
+  TIMSK3 |= _BV(OCIE3A);
+
+  sei();
+}
+
+/*
+ISR(TIMER3_OVF_vect) {
+  periodicCallbackGlobal();
+  sei();
+}
+*/
+
+ISR(TIMER3_COMPA_vect) {
+  periodicCallbackGlobal();
+  TIMSK3 &= ~_BV(OCIE3A);
   sei();
 }
