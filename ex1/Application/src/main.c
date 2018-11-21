@@ -126,23 +126,35 @@ void setup() {
   rand_feed(true);
   */
 
+static int8_t oldVolume = 0;
+
 void background() {
 
-  if (HAVE_MP3_BOARD) {
-    cli();
-    if (!usingSPI) {
-      usingSPI = true;
-      sei();
-      if (!mp3Busy()) {
+  // game fills the whole 128x64pix screen
+  // ball must start at the bottom, in the center
 
-        // we disable interrupts during mp3 send because
-        // we get audio glitches if someone else accesses the SPI
-        sdcardReadBlock(byteAddress, buffer);
-        mp3SendMusic(buffer);
-        //
-        byteAddress += 32;
+  // player must have the possiblity to start a new game and also access the high score table
+
+  if (HAVE_MP3_BOARD) {
+    if (!mp3Busy()) {
+      PORTK++;
+      cli();
+      if (haveNewVolume) {
+        haveNewVolume = false;
+        if (oldVolume != volumeFromADC) {
+          oldVolume = volumeFromADC;
+          sei();
+          mp3SetVolume(volumeFromADC);
+        }
       }
-      usingSPI = false;
+      sei();
+
+      // we disable interrupts during mp3 send because
+      // we get audio glitches if someone else accesses the SPI
+      sdcardReadBlock(byteAddress, buffer);
+      mp3SendMusic(buffer);
+      //
+      byteAddress += 32;
     }
   }
 

@@ -4,9 +4,6 @@
 #include "rand.h"
 #include "timer_utils.h"
 
-#include <stdbool.h>
-#include <stdint.h>
-
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <tools.h>
@@ -49,6 +46,7 @@ PK0 = ADC8
 PK7 = ADC15
 */
 
+volatile bool haveNewVolume = false;
 static volatile bool volumeMode = false;
 
 static void sampleRand(void) {
@@ -121,13 +119,8 @@ ISR(ADC_vect) {
       fail();
     }
 
-    if (!usingSPI) {
-      sei();
-      // fixme: better do this outside ISR
-      // FIXME: not on every call
-      mp3SetVolume(volume);
-      cli();
-    }
+    haveNewVolume = true;
+    volumeFromADC = volume;
     volumeMode = false;
   }
 
