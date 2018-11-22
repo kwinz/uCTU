@@ -50,7 +50,7 @@ volatile bool haveNewVolume = false;
 static volatile bool volumeMode = false;
 
 static void sampleRand(void) {
-  PORTH++;
+  // PORTH++;
   // for rand we use
   // MUX5:0 001111  ADC3,ADC2 200× gain
   // write the 5 bits to ADMUX. ADCSRB is already set

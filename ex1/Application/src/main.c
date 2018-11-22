@@ -27,18 +27,6 @@ extern const font Standard5x7;
 extern const uint8_t _mac[1][6];
 bool rumbler = false;
 
-typedef enum {
-  CONNECT_PAINT,
-  CONNECT,
-  MENU_PAINT,
-  MENU,
-  PLAYING,
-  PLAYING_ENTER,
-  DEAD,
-  HIGHSCORE_PAINT,
-  HIGHSCORE
-} GameState_t;
-
 volatile GameState_t gamestate = CONNECT_PAINT;
 
 volatile bool wantTick = false;
@@ -166,27 +154,32 @@ int main(void) {
     switch (gamestate) {
     case CONNECT_PAINT: {
       sei();
+
       glcdFillScreen(GLCD_CLEAR);
-      xy_point c = {20, 20};
+      glcdSetYShift(00);
+      xy_point c = {20, 10};
       glcdDrawText("press any key", c, &Standard5x7, &glcdSetPixel);
       c.y = 40;
       glcdDrawText("to connect", c, &Standard5x7, &glcdSetPixel);
+
       gamestate = CONNECT;
     } break;
     case CONNECT: {
       sei();
     } break;
     case MENU_PAINT: {
+      sei();
+      glcdSetYShift(0);
       glcdFillScreen(GLCD_CLEAR);
       xy_point c = {20, 20};
       glcdDrawText("New game: A", c, &Standard5x7, &glcdSetPixel);
       gamestate = MENU;
-      sei();
     } break;
     case MENU: {
       sei();
     } break;
     case PLAYING_ENTER: {
+      sei();
       gameStart();
       gamestate = PLAYING;
     } break;
@@ -196,6 +189,15 @@ int main(void) {
         sei();
         gameTick();
       }
+    } break;
+    case DEAD_ENTER: {
+      sei();
+      glcdSetYShift(0);
+      glcdFillScreen(GLCD_CLEAR);
+      xy_point c = {20, 20};
+      glcdDrawText("u ded", c, &Standard5x7, &glcdSetPixel);
+      gamestate = DEAD;
+
     } break;
     case DEAD: {
       sei();
