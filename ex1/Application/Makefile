@@ -15,7 +15,7 @@ EXEC   = build.elf
 CFLAGS   := -mmcu=atmega1280
 CCFLAGS  := -std=gnu99 -Wall -Wno-main -O2 -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums -pedantic -Wno-unused-but-set-variable #-Werror
 CPPFLAGS := -I./includes -I./src
-LDFLAGS  := -L./libs -lglcd -lwiimote -lsdcard -lmp3
+LDFLAGS  := -L./libs -lwiimote -lsdcard -lmp3
 
 SOURCES  := $(wildcard $(SRCDIR)/*.c)
 #INCLUDES := $(wildcard $(SRCDIR)/*.h)
