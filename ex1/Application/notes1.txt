@@ -85,8 +85,7 @@ von informatik fachschaft
 timer 10ms
 add to pool
 
-
-
-
+GABRIEL
+rust, zwillinge
 
 
