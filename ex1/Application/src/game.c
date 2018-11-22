@@ -90,13 +90,6 @@ void gameTick(void) {
   glcdDrawCircle(ball, 1, &glcdSetPixel);
   glcdDrawCircle(ball, 2, &glcdSetPixel);
 
-  // cli();
-  // old_ball = ball;
-  // sei();
-
-  // move viewport
-  // kill ball or obstacles at the top
-  // and spawn new obstacles
   if (ticks % 10 == 0) {
     glcdDrawHorizontal(yshift, &glcdClearPixel);
     yshift++;
@@ -116,96 +109,4 @@ void gameTick(void) {
       obstacle0.active = true;
     }
   }
-}
-
-void gameTickOld(void) {
-  // cli();
-  // xy_point new_ball = ball;
-  // sei();
-
-  ticks++;
-
-  bool moveball = false;
-  if (speed > 40) {
-    moveball = ticks % 2 == 0;
-  } else if (speed > 30) {
-    moveball = ticks % 5 == 0;
-  } else if (speed > 20) {
-    moveball = ticks % 10 == 0;
-  } else if (speed > 10) {
-    moveball = ticks % 20 == 0;
-  }
-
-  if (moveball) {
-    ball.x += moveRight ? 1 : -1;
-    ball.x %= 128;
-  }
-
-  // game fills the whole 128x64pix screen
-  // ball must start at the bottom, in the center
-
-  // player must have the possiblity to start a new game and also access the high score table
-
-  // xy_point a = {0, 0};
-  // y_point b = {50, rand16() % 50U};
-
-  glcdDrawCircle(old_ball, 1, &glcdClearPixel);
-  glcdDrawCircle(old_ball, 2, &glcdClearPixel);
-
-  glcdDrawCircle(ball, 1, &glcdSetPixel);
-  glcdDrawCircle(ball, 2, &glcdSetPixel);
-
-  cli();
-  old_ball = ball;
-  sei();
-
-  // glcdDrawLine(a, b, &glcdInvertPixel);
-
-  // glcdDrawText("olol", c, &Standard5x7, &glcdInvertPixel);
-
-  // if (rand16() < 200) {
-  if (ticks % 10 == 0) {
-    yshift++;
-    // glcdDrawHorizontal(0, &glcdSetPixel);
-    // glcdDrawHorizontal(1, &glcdSetPixel);
-    glcdDrawHorizontal(yshift, &glcdClearPixel);
-    // glcdDrawHorizontal(64, &glcdSetPixel);
-
-    // glcdDrawHorizontal(63, &glcdClearPixel);
-    glcdSetYShift(yshift);
-
-    obstacle0.y--;
-    if (obstacle0.y == 0) {
-      const uint8_t left = rand16() % 64;
-      const uint8_t right = rand16() % 64 + 63;
-      obstacle0.l = left;
-      obstacle0.r = right;
-      const xy_point left_rect = {left, yshift};
-      const xy_point right_rect = {right, yshift - 1};
-      glcdDrawRect(left_rect, right_rect, &glcdSetPixel);
-      obstacle0.y = 63;
-      obstacle0.active = true;
-    }
-
-    if (!obstacle0.active || (ball.y + 1) != obstacle0.y) {
-      ball.y += 1;
-      ball.y %= 64;
-    } else {
-      ball.y = obstacle0.y - 1;
-    }
-
-    // obstacle1.y--;
-    // obstacle2.y--;
-  }
-
-  /*
-    if (ticks % (200 + rand16() % 30) == 0) {
-      const uint8_t left = rand16() % 64;
-      const uint8_t right = rand16() % 64 + 63;
-      const uint8_t y = yshift - 1;
-      const xy_point left_rect = {left, y};
-      const xy_point right_rect = {right, y + 1};
-      glcdDrawRect(left_rect, right_rect, &glcdSetPixel);
-    }
-    */
 }
