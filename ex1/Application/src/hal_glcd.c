@@ -43,7 +43,6 @@ static void halGlcdCtrlBusyWait() {
   for (uint8_t j = 0; j < 255; ++j) {
     for (uint8_t i = 0; i < 255; ++i) {
       asm volatile("nop" :::);
-      ++count;
     }
   }
 }
@@ -116,8 +115,8 @@ static void halGlcdCtrlSetAddress(const bool controller2, const uint8_t x, const
 }
 
 static void halGlcdTurnOn(const bool on) {
-  // const uint8_t data = 0x3E | on;
-  const uint8_t data = 0x3F; // FIXME hardcoded on
+  const uint8_t data = 0x3E | on;
+  // const uint8_t data = 0x3F; // FIXME hardcoded on
   halGlcdCtrlWriteCmd(false, data);
   halGlcdCtrlWriteCmd(true, data);
 }
@@ -153,3 +152,5 @@ uint8_t halGlcdWriteData(const uint8_t data) {
   halGlcdCtrlWriteData(false, data);
   return 0;
 }
+
+uint8_t halGlcdReadData() { return halGlcdCtrlReadData(false); }

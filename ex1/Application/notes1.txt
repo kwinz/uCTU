@@ -88,4 +88,12 @@ add to pool
 GABRIEL
 rust, zwillinge
 
+==================
+
+
+I am considering mirroring the GLCD RAM (1kB) in uC RAM to improve access times because the pixel function is very granular but the GLCD works in byte-sized chunks. And the GLCD controller is not optimized for read modify write because it postincrements the address on every read.
+
+Is it  recommended / discouraged / forbidden to mirror?
+
+Is this what the app1 spec means with framebuffer?
 

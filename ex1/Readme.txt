@@ -60,3 +60,8 @@ To generate the archive, run 'make protocol' in the main directory of the
 template.
 Be sure to check that the generated file (protocol_YOURMATRNR.tar.gz) includes
 all files required, then upload it in myTI.
+
+
+https://ti.tuwien.ac.at/ecs/teaching/courses/mclu/manuals/glcd/glcd_128x64_spec.pdf
+http://embedded-lab.com/blog/lab-20-interfacing-a-ks0108-based-graphics-lcd-part-1/
+https://www.nongnu.org/avr-libc/user-manual/group__avr__string.html#ga8f49550cc1e16fff2d707f91667eb80c
