@@ -59,24 +59,74 @@ void glcdInvertPixel(const uint8_t x, const uint8_t y) {
   halGlcdWriteData(framebuffer[x][pageNumber]);
 }
 
+static inline uint8_t min(uint8_t a, uint8_t b) {
+  if (a > b)
+    return b;
+  return a;
+}
+
+static inline uint8_t max(uint8_t a, uint8_t b) {
+  if (a > b)
+    return a;
+  return b;
+}
+
 /** \brief          Draws a line from p1 to p2 using a given drawing function.
     \param p1       Start point.
     \param p2       End point.
     \param drawPx   Drawing function. Should be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
 */
 void glcdDrawLine(const xy_point p1, const xy_point p2,
-                  void (*drawPx)(const uint8_t, const uint8_t)) {}
+                  void (*drawPx)(const uint8_t, const uint8_t)) {
 
-static inline int min(int a, int b) {
-  if (a > b)
-    return b;
-  return a;
-}
+  uint8_t x = p1.x, y = p1.y, x2 = p2.x, y2 = p2.y;
 
-static inline int max(int a, int b) {
-  if (a > b)
-    return a;
-  return b;
+  uint8_t dx1 = 0, dy1 = 0, dx2 = 0, dy2 = 0;
+
+  uint8_t w = x2 - x;
+  if (x2 > x) {
+    dx1 = 1;
+    dx2 = 1;
+  } else if (x2 < x) {
+    w = x - x2;
+    dx1 = -1;
+    dx2 = -1;
+  }
+
+  uint8_t h = y2 - y;
+  if (y2 > y) {
+    dy1 = 1;
+  } else if (y2 < y) {
+    h = y - y2;
+    dy1 = -1;
+  }
+
+  uint8_t longest = w;
+  uint8_t shortest = h;
+  if (!(longest > shortest)) {
+    longest = h;
+    shortest = w;
+
+    if (y2 > y) {
+      dy2 = 1;
+    } else if (y2 < y) {
+      dy2 = -1;
+    }
+    dx2 = 0;
+  }
+  int numerator = longest >> 1;
+  for (int i = 0; i <= longest; i++) {
+    drawPx(x, y);
+    numerator += shortest;
+    if (!(numerator < longest)) {
+      numerator -= longest;
+      x += dx1;
+      y += dy1;
+    } else {
+      x += dx2;
+      y += dy2;
+    }
+  }
 }
 
 /** \brief          Draws a rectangle from p1 to p2 using a given drawing function.
@@ -154,26 +204,6 @@ void glcdDrawText(const char *text, const xy_point p, const font *f,
     charIndex++;
     text++;
   }
-
-  /** First character in font
-  uint8_t startChar;
-
-Last character in font
-  uint8_t endChar;
-
-   Character width
-  uint8_t width;
-
-   Character height, limited to 8 pixel (uint8_t)
-  uint8_t height;
-
-   Character spacing (horizontal)
-  uint8_t charSpacing;
-Line spacing (vertical)
-  uint8_t lineSpacing;
-
-   Characters in progmem
-    const uint8_t *font;*/
 }
 
 /** \brief          Draws a character a given point using a given drawing function and a given
@@ -189,7 +219,10 @@ void glcdDrawTextPgm(const char *text, const xy_point p, const font *f,
 
 */
 
-void glcdSetYShift(uint8_t yshift) { yshiftStatic = yshift; }
+void glcdSetYShift(uint8_t yshift) {
+  yshiftStatic = yshift;
+  halGlcdSetYShift(yshift);
+}
 
 /** \brief          Get the Y shift for the GLCD, allowing you to implement vertical scrolling.
     \param return   Y position in RAM that becomes the top line of the display

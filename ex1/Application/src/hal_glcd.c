@@ -122,7 +122,6 @@ static void halGlcdCtrlSetAddress(const bool controller2, const uint8_t x, const
 
 static void halGlcdTurnOn(const bool on) {
   const uint8_t data = 0x3E | on;
-  // const uint8_t data = 0x3F; // FIXME hardcoded on
   halGlcdCtrlWriteCmd(false, data);
   halGlcdCtrlWriteCmd(true, data);
 }
@@ -196,4 +195,11 @@ uint8_t halGlcdReadData() {
   // FIXME: not implemented
 
   return halGlcdCtrlReadData(false);
+}
+
+uint8_t halGlcdSetYShift(const uint8_t yshift) {
+  const uint8_t data = 0xC0 | (0x3f & yshift);
+  halGlcdCtrlWriteCmd(false, data);
+  halGlcdCtrlWriteCmd(true, data);
+  return 0;
 }

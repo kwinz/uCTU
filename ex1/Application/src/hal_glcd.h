@@ -15,3 +15,5 @@ uint8_t halGlcdSetAddress(const uint8_t xCol, const uint8_t yPage);
 uint8_t halGlcdWriteData(const uint8_t data);
 
 uint8_t halGlcdReadData();
+
+uint8_t halGlcdSetYShift(const uint8_t yshift);
