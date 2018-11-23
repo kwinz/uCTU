@@ -97,3 +97,19 @@ Is it  recommended / discouraged / forbidden to mirror?
 
 Is this what the app1 spec means with framebuffer?
 
+
+
+
+
+fragen letzter freitag fuer prof:
+1. mirrored in ram? framebuffer?
+2. welche GLCD funktionen sind optional?
+3. kann man auch das clear screen in einer anderen funktion implementieren?
+4. keine y shift funktion?
+5. howto set prescaler
+6. glcd_hal can i make a function that talks to both?
+
+
+
+
+

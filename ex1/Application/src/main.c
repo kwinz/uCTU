@@ -99,7 +99,13 @@ void setup() {
   initLcd();
   glcdInit();
 
+  glcdFillScreen(GLCD_CLEAR);
+
   glcdSetPixel(10, 10);
+  glcdSetPixel(11, 11);
+  glcdSetPixel(12, 12);
+  glcdSetPixel(12, 13);
+  glcdSetPixel(12, 14);
   //===========================
   fail();
 

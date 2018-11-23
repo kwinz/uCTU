@@ -10,7 +10,7 @@ static uint8_t yshiftStatic = 0;
 #define GLC_PAGEH 8
 #define GLC_BYTES (GLC_WIDTH * GLC_HEIGHT / GLC_PAGEH)
 
-static uint8_t framebuffer[GLCD_WIDTH][GLC_HEIGHT / GLC_PAGEH] = {{0}};
+static uint8_t framebuffer[GLC_WIDTH][GLC_HEIGHT / GLC_PAGEH] = {{0}};
 
 /** \brief      Initializes port and clears the content of the GLCD. */
 void glcdInit(void) { halGlcdInit(); }
@@ -24,7 +24,7 @@ void glcdInit(void) { halGlcdInit(); }
     \param fill Pattern to fill screen with.
 */
 void glcdFillScreen(const uint8_t fill) {
-  memset(frambuffer, fill, GLC_BYTES);
+  memset(framebuffer, fill, GLC_BYTES);
   halGlcdSetAddress(0, 0);
   for (uint16_t i = 0; i < GLC_BYTES; ++i) {
     halGlcdWriteData(fill);
@@ -78,6 +78,12 @@ static inline int min(int a, int b) {
   return a;
 }
 
+static inline int max(int a, int b) {
+  if (a > b)
+    return a;
+  return b;
+}
+
 /** \brief          Draws a rectangle from p1 to p2 using a given drawing function.
     \param p1       First corner.
     \param p2       Second corner.
@@ -98,88 +104,91 @@ void glcdFillRect(const xy_point p1, const xy_point p2,
   const uint8_t top = min(p1.y, p2.y);
   const uint8_t bottom = max(p1.y, p2.y);
 
-  for (uint8_t x = left, x < right; ++x) {
-    for (uint8_t y = top, y < bottom; ++y) {
+  for (uint8_t x = left; x < right; ++x) {
+    for (uint8_t y = top; y < bottom; ++y) {
       drawPx(x, y);
     }
   }
+}
 
-  /** \brief          Draws a vertical line at a given x-coordinate using a given drawing function.
-      \param x        x-position of the line.
-      \param drawPx   Drawing function. Should be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
-  */
-  void glcdDrawVertical(const uint8_t x, void (*drawPx)(const uint8_t, const uint8_t)) {}
+/** \brief          Draws a vertical line at a given x-coordinate using a given drawing function.
+    \param x        x-position of the line.
+    \param drawPx   Drawing function. Should be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
+*/
+void glcdDrawVertical(const uint8_t x, void (*drawPx)(const uint8_t, const uint8_t)) {}
 
-  /** \brief          Draws a horizontal line at a given y-coordinate using a given drawing
-     function. \param y        y-position of the line. \param drawPx   Drawing function. Should be
-     setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
-  */
-  void glcdDrawHorizontal(const uint8_t y, void (*drawPx)(const uint8_t, const uint8_t)) {
-    for (uint8_t x = 0; x < GLC_WIDTH; ++x) {
-      drawPx(x, y);
-    }
+/** \brief          Draws a horizontal line at a given y-coordinate using a given drawing
+   function. \param y        y-position of the line. \param drawPx   Drawing function. Should be
+   setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
+*/
+void glcdDrawHorizontal(const uint8_t y, void (*drawPx)(const uint8_t, const uint8_t)) {
+  for (uint8_t x = 0; x < GLC_WIDTH; ++x) {
+    drawPx(x, y);
   }
+}
 
-  /** \brief          Draws a character a given point using a given drawing function and a given
-     font. \param c        Character to display. \param p        Position where to display the
-     character (the anchor is bottom left). \param f        Font to use. \param drawPx   Drawing
-     function. Should be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
-  */
-  void glcdDrawChar(const char c, const xy_point p, const font *f,
-                    void (*drawPx)(const uint8_t, const uint8_t)) {}
+/** \brief          Draws a character a given point using a given drawing function and a given
+   font. \param c        Character to display. \param p        Position where to display the
+   character (the anchor is bottom left). \param f        Font to use. \param drawPx   Drawing
+   function. Should be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
+*/
+void glcdDrawChar(const char c, const xy_point p, const font *f,
+                  void (*drawPx)(const uint8_t, const uint8_t)) {}
 
-  /** \brief          Draws a character a given point using a given drawing function and a given
-     font. \param text     Text to display. \param p        Position where to display the text (the
-     anchor is bottom left). \param f        Font to use. \param drawPx   Drawing function. Should
-     be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
-  */
-  void glcdDrawText(const char *text, const xy_point p, const font *f,
-                    void (*drawPx)(const uint8_t, const uint8_t)) {
+/** \brief          Draws a character a given point using a given drawing function and a given
+   font. \param text     Text to display. \param p        Position where to display the text (the
+   anchor is bottom left). \param f        Font to use. \param drawPx   Drawing function. Should
+   be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
+*/
+void glcdDrawText(const char *text, const xy_point p, const font *f,
+                  void (*drawPx)(const uint8_t, const uint8_t)) {
 
-    while (*text != '\0') {
-      for (uint8_t x = left, x < right; ++x) {
+  while (*text != '\0') {
+    for (uint8_t x = p.x; x < p.x + f->width; ++x) {
+      for (uint8_t y = p.y - f->height; y < p.y; ++y) {
+        drawPx(x, y);
       }
     }
-
-    /** First character in font */
-    uint8_t startChar;
-
-    /** Last character in font */
-    uint8_t endChar;
-
-    /** Character width */
-    uint8_t width;
-
-    /** Character height, limited to 8 pixel (uint8_t) */
-    uint8_t height;
-
-    /** Character spacing (horizontal) */
-    uint8_t charSpacing;
-
-    /** Line spacing (vertical) */
-    uint8_t lineSpacing;
-
-    /** Characters in progmem */
-    const uint8_t *font;
   }
 
-  /** \brief          Draws a character a given point using a given drawing function and a given
-     font. \param text     Text to display. The text is stored on the program memory. \param p
-     Position where to display the text (the anchor is bottom left). \param f        Font to use.
-      \param drawPx   Drawing function. Should be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
-  */
-  void glcdDrawTextPgm(const char *text, const xy_point p, const font *f,
-                       void (*drawPx)(const uint8_t, const uint8_t)) {}
+  /** First character in font
+  uint8_t startChar;
 
-  /** \brief          Set the Y shift for the GLCD, allowing you to implement vertical scrolling.
-      \param yshift   Y position in RAM that becomes the top line of the display
+Last character in font
+  uint8_t endChar;
 
-  */
+   Character width
+  uint8_t width;
 
-  void glcdSetYShift(uint8_t yshift) { yshiftStatic = yshift; }
+   Character height, limited to 8 pixel (uint8_t)
+  uint8_t height;
 
-  /** \brief          Get the Y shift for the GLCD, allowing you to implement vertical scrolling.
-      \param return   Y position in RAM that becomes the top line of the display
+   Character spacing (horizontal)
+  uint8_t charSpacing;
+Line spacing (vertical)
+  uint8_t lineSpacing;
 
-  */
-  uint8_t glcdGetYShift() { return yshiftStatic; }
+   Characters in progmem
+    const uint8_t *font;*/
+}
+
+/** \brief          Draws a character a given point using a given drawing function and a given
+   font. \param text     Text to display. The text is stored on the program memory. \param p
+   Position where to display the text (the anchor is bottom left). \param f        Font to use.
+    \param drawPx   Drawing function. Should be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
+*/
+void glcdDrawTextPgm(const char *text, const xy_point p, const font *f,
+                     void (*drawPx)(const uint8_t, const uint8_t)) {}
+
+/** \brief          Set the Y shift for the GLCD, allowing you to implement vertical scrolling.
+    \param yshift   Y position in RAM that becomes the top line of the display
+
+*/
+
+void glcdSetYShift(uint8_t yshift) { yshiftStatic = yshift; }
+
+/** \brief          Get the Y shift for the GLCD, allowing you to implement vertical scrolling.
+    \param return   Y position in RAM that becomes the top line of the display
+
+*/
+uint8_t glcdGetYShift() { return yshiftStatic; }

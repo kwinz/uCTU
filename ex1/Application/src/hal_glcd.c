@@ -40,11 +40,11 @@ source: glcd_128x64_spec.pdf
 volatile static uint8_t count = 0;
 
 static void halGlcdCtrlBusyWait() {
-  for (uint8_t j = 0; j < 255; ++j) {
-    for (uint8_t i = 0; i < 255; ++i) {
-      asm volatile("nop" :::);
-    }
+  // for (uint8_t j = 0; j < 255; ++j) {
+  for (uint8_t i = 0; i < 255; ++i) {
+    asm volatile("nop" :::);
   }
+  //}
 }
 
 /*
@@ -57,7 +57,7 @@ static void halGlcdCtrlWriteCmd(const bool controller2, const uint8_t data) {
   halGlcdCtrlBusyWait();
   DDRA = 0xFF;
   PORTA = data;
-  PORTE = (controller2 ? GL_CS2 : GL_CS1) | GL_RESET;
+  PORTE = (controller2 ? GL_CS1 : GL_CS2) | GL_RESET;
   halGlcdCtrlBusyWait();
   PORTE |= GL_E;
   halGlcdCtrlBusyWait();
@@ -74,7 +74,7 @@ static void halGlcdCtrlWriteData(const bool controller2, const uint8_t data) {
   halGlcdCtrlBusyWait();
   DDRA = 0xFF;
   PORTA = data;
-  PORTE = (controller2 ? GL_CS2 : GL_CS1) | GL_RESET;
+  PORTE = (controller2 ? GL_CS1 : GL_CS2) | GL_RESET;
   PORTE |= GL_RS;
   halGlcdCtrlBusyWait();
   PORTE |= GL_E;
@@ -91,7 +91,7 @@ static uint8_t halGlcdCtrlReadData(const bool controller2) {
   PORTE &= ~GL_E;
   halGlcdCtrlBusyWait();
   DDRA = 0x00;
-  PORTE = (controller2 ? GL_CS2 : GL_CS1) | GL_RESET;
+  PORTE = (controller2 ? GL_CS1 : GL_CS2) | GL_RESET;
   PORTE |= GL_RS;
   PORTE |= GL_RW;
   halGlcdCtrlBusyWait();
@@ -101,6 +101,12 @@ static uint8_t halGlcdCtrlReadData(const bool controller2) {
   PORTE &= ~GL_E;
 }
 
+/**
+ *
+ * WARNING: the parameters of this function X Y are swapped in comparison with halGlcdSetAddress
+ *
+ *
+ */
 static void halGlcdCtrlSetAddress(const bool controller2, const uint8_t x, const uint8_t y) {
   // write y
   {
@@ -128,8 +134,11 @@ controllers. After calling this function the GLCD should be empty and ready for 
 uint8_t halGlcdInit(void) {
   DDRE = 0xFF;
   halGlcdTurnOn(true);
+  halGlcdSetAddress(0, 0);
   return 0;
 }
+
+static uint8_t xColStatic, yPageStatic;
 
 /*
 This function sets the internal RAM address to match the x and y addresses.
@@ -139,8 +148,15 @@ Note that this convention differs from the chip datasheet where the
 orientation of x and y is different.
 */
 uint8_t halGlcdSetAddress(const uint8_t xCol, const uint8_t yPage) {
+  xColStatic = xCol;
+  yPageStatic = yPage;
 
-  halGlcdCtrlSetAddress(false, xCol, yPage);
+  bool controller2 = false;
+  if (xColStatic > 63) {
+    controller2 = true;
+  }
+
+  halGlcdCtrlSetAddress(false, yPage, xCol % 64);
   return 0;
 }
 
@@ -149,8 +165,35 @@ The post increment of the writedisplaydata operation, which is provided by the G
 should be transparently extended over both display controllers.
 */
 uint8_t halGlcdWriteData(const uint8_t data) {
-  halGlcdCtrlWriteData(false, data);
+  bool controller2 = false;
+  if (xColStatic > 63) {
+    controller2 = true;
+  }
+
+  halGlcdCtrlWriteData(controller2, data);
+
+  xColStatic++;
+  if (xColStatic == 64) {
+    halGlcdCtrlSetAddress(true, yPageStatic, xColStatic % 64);
+  }
+
+  if (xColStatic == 128) {
+    xColStatic = 0;
+    yPageStatic++;
+    yPageStatic %= (GLC_HEIGHT / GLC_PAGEH);
+    halGlcdCtrlSetAddress(false, yPageStatic, xColStatic % 64);
+  }
+
+  PORTH++;
+  PORTK = xColStatic;
+  PORTL = yPageStatic;
+
   return 0;
 }
 
-uint8_t halGlcdReadData() { return halGlcdCtrlReadData(false); }
+uint8_t halGlcdReadData() {
+
+  // FIXME: not implemented
+
+  return halGlcdCtrlReadData(false);
+}
