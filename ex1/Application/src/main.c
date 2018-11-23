@@ -65,7 +65,7 @@ void conCallback(const uint8_t wii, const connection_status_t status) {
 
 sdcard_block_t buffer;
 volatile uint32_t byteAddress = 5460224LU;
-volatile uint8_t count = 0;
+// volatile static uint8_t count = 0;
 
 static void dataRequestCallback(void) {
   // we are woken up from sleep due to the callback interrupt
@@ -80,7 +80,6 @@ void setup() {
   clearScreen();
   DDRL = 0xFF;
   PORTL = 0x00;
-  clearScreen();
 
   if (HAVE_BLUETOOTH_BOARD) {
     uint8_t wii = 0;
@@ -99,6 +98,11 @@ void setup() {
 
   initLcd();
   glcdInit();
+
+  glcdSetPixel(10, 10);
+  //===========================
+  fail();
+
   sei();
 
   if (HAVE_MP3_BOARD) {

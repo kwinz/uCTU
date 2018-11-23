@@ -20,7 +20,10 @@ void glcdFillScreen(const uint8_t fill) {}
     \param x    x-coordinate of pixel to set.
     \param y    y-coordinate of pixel to set.
 */
-void glcdSetPixel(const uint8_t x, const uint8_t y) {}
+void glcdSetPixel(const uint8_t x, const uint8_t y) {
+  halGlcdSetAddress(3, 3);
+  halGlcdWriteData(0xFF);
+}
 
 /** \brief      Clears one single pixel
     \param x    x-coordinate of pixel to clear.
