@@ -99,6 +99,7 @@ void setup() {
   initLcd();
   glcdInit();
 
+  glcdFillScreen(GLCD_FILL);
   glcdFillScreen(GLCD_CLEAR);
 
   glcdSetPixel(60, 20);
@@ -115,6 +116,29 @@ void setup() {
   {
     xy_point c = {20, 10};
     glcdDrawText("Hi Fraenk <3", c, &Standard5x7, &glcdSetPixel);
+  }
+  {
+    xy_point p2 = {10, 10};
+    xy_point p1 = {120, 60};
+    glcdDrawLine(p1, p2, &glcdSetPixel);
+  }
+
+  {
+    xy_point p1 = {10, 30};
+    xy_point p2 = {120, 30};
+    glcdDrawLine(p1, p2, &glcdSetPixel);
+  }
+
+  {
+    xy_point p1 = {40, 10};
+    xy_point p2 = {40, 60};
+    glcdDrawLine(p1, p2, &glcdSetPixel);
+  }
+
+  {
+    xy_point p2 = {120, 20};
+    xy_point p1 = {30, 60};
+    glcdDrawLine(p1, p2, &glcdSetPixel);
   }
 
   //===========================

@@ -41,7 +41,7 @@ volatile static uint8_t count = 0;
 
 static void halGlcdCtrlBusyWait() {
   // for (uint8_t j = 0; j < 255; ++j) {
-  for (uint8_t i = 0; i < 255; ++i) {
+  for (uint8_t i = 0; i < 30; ++i) {
     asm volatile("nop" :::);
   }
   //}
