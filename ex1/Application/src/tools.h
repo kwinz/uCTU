@@ -8,7 +8,7 @@
 #define FOSC F_CPU // Clock Speed
 
 #define HAVE_MP3_BOARD true
-#define HAVE_BLUETOOTH_BOARD false
+#define HAVE_BLUETOOTH_BOARD true
 
 void fail(void);
 void busyWaitMS(const uint16_t ms);

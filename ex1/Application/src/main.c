@@ -101,13 +101,24 @@ void setup() {
 
   glcdFillScreen(GLCD_CLEAR);
 
-  glcdSetPixel(10, 10);
-  glcdSetPixel(11, 11);
-  glcdSetPixel(12, 12);
-  glcdSetPixel(12, 13);
-  glcdSetPixel(12, 14);
+  glcdSetPixel(60, 20);
+  glcdSetPixel(61, 21);
+  glcdSetPixel(62, 22);
+  glcdSetPixel(63, 23);
+  glcdSetPixel(64, 24);
+  glcdSetPixel(65, 25);
+  glcdSetPixel(66, 26);
+  glcdSetPixel(67, 27);
+  glcdSetPixel(68, 28);
+  glcdSetPixel(69, 29);
+
+  {
+    xy_point c = {20, 10};
+    glcdDrawText("Hi Fraenk <3", c, &Standard5x7, &glcdSetPixel);
+  }
+
   //===========================
-  fail();
+  // fail();
 
   sei();
 

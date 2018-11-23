@@ -5,11 +5,6 @@
 
 static uint8_t yshiftStatic = 0;
 
-#define GLC_WIDTH 128
-#define GLC_HEIGHT 64
-#define GLC_PAGEH 8
-#define GLC_BYTES (GLC_WIDTH * GLC_HEIGHT / GLC_PAGEH)
-
 static uint8_t framebuffer[GLC_WIDTH][GLC_HEIGHT / GLC_PAGEH] = {{0}};
 
 /** \brief      Initializes port and clears the content of the GLCD. */
@@ -143,12 +138,21 @@ void glcdDrawChar(const char c, const xy_point p, const font *f,
 void glcdDrawText(const char *text, const xy_point p, const font *f,
                   void (*drawPx)(const uint8_t, const uint8_t)) {
 
+  uint8_t charIndex = 0;
   while (*text != '\0') {
-    for (uint8_t x = p.x; x < p.x + f->width; ++x) {
-      for (uint8_t y = p.y - f->height; y < p.y; ++y) {
-        drawPx(x, y);
+    uint8_t base_x = p.x + charIndex * f->charSpacing;
+    for (uint8_t char_x = 0; char_x < f->width; ++char_x) {
+      uint8_t x = char_x + base_x;
+      const uint8_t colByte = pgm_read_byte(f->font + ((*text - f->startChar) * f->width + char_x));
+      for (uint8_t char_y = 0; char_y < f->height; ++char_y) {
+        const uint8_t y = p.y - f->height + char_y;
+        if (colByte & (1 << char_y)) {
+          drawPx(x, y);
+        }
       }
     }
+    charIndex++;
+    text++;
   }
 
   /** First character in font

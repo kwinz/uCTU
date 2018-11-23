@@ -156,7 +156,7 @@ uint8_t halGlcdSetAddress(const uint8_t xCol, const uint8_t yPage) {
     controller2 = true;
   }
 
-  halGlcdCtrlSetAddress(false, yPage, xCol % 64);
+  halGlcdCtrlSetAddress(controller2, yPage, xCol % 64);
   return 0;
 }
 
