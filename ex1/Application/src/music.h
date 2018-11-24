@@ -26,5 +26,6 @@ typedef enum Songs {
   SONG_NOSONG
 } Song_t;
 
-void songPlay(Song_t song, void (*songOver)(Song_t song));
+void songInit(void);
+void songPlay(const Song_t song, void (*songOver)(const Song_t song));
 void songTick(void);

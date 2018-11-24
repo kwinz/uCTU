@@ -4,7 +4,6 @@
 #include "game.h"
 #include "glcd.h"
 #include "lcd.h"
-#include "mp3.h"
 #include "music.h"
 #include "rand.h"
 #include "sdcard.h"
@@ -26,6 +25,7 @@
 
 extern const font Standard5x7;
 extern const uint8_t _mac[1][6];
+
 bool rumbler = false;
 
 volatile GameState_t gamestate = CONNECT_PAINT;
@@ -34,7 +34,12 @@ volatile bool wantTick = false;
 
 void newTick(void) { wantTick = true; }
 
-void setRumblerCallback(const uint8_t wii, const error_t status) {}
+void setRumblerCallback(const uint8_t wii, const error_t status) {
+  if (status != SUCCESS) {
+    PORTA = 0xAA;
+    fail();
+  }
+}
 
 void rcvButton(const uint8_t wii, const uint16_t buttonStates) {
 
@@ -64,22 +69,7 @@ void conCallback(const uint8_t wii, const connection_status_t status) {
   }
 }
 
-extern sdcard_block_t buffer;
-extern uint32_t byteAddress;
-
-static void dataRequestCallback(void) {
-  // we are woken up from sleep due to the callback interrupt
-  // don't do anything else here
-  sei();
-  // while (!mp3Busy()) {
-  //  sdcardReadBlock(byteAddress, buffer);
-  //  mp3SendMusic(buffer);
-  //  byteAddress += 32;
-  //}
-}
-
-void testGlcd() {
-
+static void testGlcd(void) {
   glcdFillScreen(GLCD_FILL);
   glcdFillScreen(GLCD_CLEAR);
 
@@ -96,7 +86,7 @@ void testGlcd() {
 
   {
     xy_point c = {20, 10};
-    glcdDrawText("Hi Fraenk <3", c, &Standard5x7, &glcdSetPixel);
+    glcdDrawText("Hi World <3", c, &Standard5x7, &glcdSetPixel);
   }
   {
     xy_point p2 = {10, 10};
@@ -121,14 +111,13 @@ void testGlcd() {
     xy_point p1 = {30, 60};
     glcdDrawLine(p1, p2, &glcdSetPixel);
   }
-}
 
-void mySyncScreen() {
-  sei();
-  syncScreen();
+  // fail();
 }
 
 void setup() {
+  // those are used as debugging leds
+  // initialize as output and set to off
   DDRH = 0xFF;
   PORTH = 0x00;
   DDRK = 0xFF;
@@ -156,54 +145,27 @@ void setup() {
   sei();
 
   // dispString("Booted7", 0, 0);
-
-  // start16BitTimer(TIMER4, 10000U, &mySyncScreen);
-
   // testGlcd();
   // fail();
-  //===========================
-
-  if (HAVE_MP3_BOARD) {
-    PORTK++;
-    spiInit();
-    // busyWaitMS(500);
-    const error_t sdcarderror = sdcardInit();
-    if (SUCCESS != sdcarderror) {
-      PORTA = 0xAA;
-      PORTK++;
-      fail();
-    }
-    PORTK++;
-  }
 
   initLcd();
-  clearScreen();
-
   glcdInit();
-
+  testGlcd();
+  songInit();
   adcInit();
 
-  if (HAVE_MP3_BOARD) {
-    mp3Init(&dataRequestCallback);
-    // mp3SetVolume(0xA0);
-  }
-
-  // mp3StartSineTest();
-
+  // main tick
   start16BitTimer(TIMER3, 4500U, &newTick);
-
-  //
 }
 
 void background() {
-
   if (HAVE_MP3_BOARD) {
     songTick();
   }
   syncScreen();
 }
 
-static void songOver(Song_t song) {}
+static void songOver(Song_t song) { songPlay(song, &songOver); }
 
 int main(void) {
   setup();
