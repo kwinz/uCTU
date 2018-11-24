@@ -38,7 +38,7 @@ source: glcd_128x64_spec.pdf
 
 */
 
-#define NOPS_INIT 25
+#define NOPS_INIT 100
 #define NOPS_DISABLE 5
 #define NOPS_SETUP 5
 #define NOPS_HOLD 25
@@ -164,7 +164,7 @@ uint8_t halGlcdInit(void) {
 }
 
 static uint8_t xColStatic, yPageStatic;
-#include "mp3.h"
+
 /*
 This function sets the internal RAM address to match the x and y addresses.
 While 0 6 xCol 6 127 is the horizontal coordinate from left to right,
