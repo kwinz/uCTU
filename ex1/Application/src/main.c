@@ -19,6 +19,7 @@
 #include <stdio.h>
 
 #include <avr/interrupt.h>
+#include <avr/pgmspace.h>
 #include <avr/sleep.h>
 
 #include <math.h>
@@ -45,6 +46,7 @@ void rcvButton(const uint8_t wii, const uint16_t buttonStates) {
 
   if (buttonStates & 8) {
     gamestate = PLAYING_ENTER;
+    PORTL++;
   }
   // 1 = 2
   // 2 = 1
@@ -67,58 +69,6 @@ void conCallback(const uint8_t wii, const connection_status_t status) {
   } else {
     wiiUserConnect(wii, _mac[0], &conCallback);
   }
-}
-
-static void testGlcd(void) {
-  glcdFillScreen(GLCD_FILL);
-  glcdFillScreen(GLCD_CLEAR);
-
-  glcdSetPixel(60, 20);
-  glcdSetPixel(61, 21);
-  glcdSetPixel(62, 22);
-  glcdSetPixel(63, 23);
-  glcdSetPixel(64, 24);
-  glcdSetPixel(65, 25);
-  glcdSetPixel(66, 26);
-  glcdSetPixel(67, 27);
-  glcdSetPixel(68, 28);
-  glcdSetPixel(69, 29);
-
-  {
-    xy_point c = {20, 10};
-    glcdDrawText("Hi World <3", c, &Standard5x7, &glcdSetPixel);
-  }
-  {
-    xy_point p2 = {10, 10};
-    xy_point p1 = {120, 60};
-    glcdDrawLine(p1, p2, &glcdSetPixel);
-  }
-
-  {
-    xy_point p1 = {10, 30};
-    xy_point p2 = {120, 30};
-    glcdDrawLine(p1, p2, &glcdSetPixel);
-  }
-
-  {
-    xy_point p1 = {40, 10};
-    xy_point p2 = {40, 60};
-    glcdDrawLine(p1, p2, &glcdSetPixel);
-  }
-
-  {
-    xy_point p2 = {120, 20};
-    xy_point p1 = {30, 60};
-    glcdDrawLine(p1, p2, &glcdSetPixel);
-  }
-
-  {
-    xy_point p2 = {45, 45};
-    xy_point p1 = {50, 50};
-    glcdDrawRect(p1, p2, &glcdInvertPixel);
-  }
-
-  fail();
 }
 
 void setup() {
@@ -148,17 +98,16 @@ void setup() {
     }
   }
 
-  sei();
-
+  // initLcd();
   // dispString("Booted7", 0, 0);
-  // testGlcd();
-  // fail();
-
-  initLcd();
   glcdInit();
-  testGlcd();
-  songInit();
+  // testGlcd();
+
   adcInit();
+
+  songInit();
+
+  sei();
 
   // main tick
   start16BitTimer(TIMER3, 4500U, &newTick);
@@ -212,7 +161,7 @@ int main(void) {
     case PLAYING_ENTER: {
       sei();
       if (HAVE_MP3_BOARD) {
-        songPlay(SONG_GLORY, &songOver);
+        songPlay(SONG_ZGAGA, &songOver);
       }
       gameStart();
       gamestate = PLAYING;

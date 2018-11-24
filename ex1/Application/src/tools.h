@@ -1,5 +1,9 @@
 #pragma once
 
+/**
+ * This is my version of / an additon to util.h
+ */
+
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdint.h>

@@ -129,8 +129,8 @@ void gameTick(void) {
 
   // move ball down
   if (ticks % 6 == 0) {
-    PORTK = ball.y;
-    PORTL = bottom;
+    // PORTK = ball.y;
+    // PORTL = bottom;
 
     if ((ball.y + 6) % 64 == obstacle0.y && obstacle0.l < ball.x && ball.x < obstacle0.r) {
     } else if ((ball.y + 6) % 64 == bottom) {

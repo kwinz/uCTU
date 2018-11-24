@@ -67,14 +67,12 @@ static void sampleVolume() {
   ADMUX = (ADMUX & 0xE0) | 0;
 }
 
-static void randfeed() {
-
+static void sampleADC() {
   if (volumeMode) {
     sampleVolume();
   } else {
     sampleRand();
   }
-
   // ADEN ADSC ADATE ADIF ADIE ADPS2 ADPS1 ADPS0
   ADCSRA = (1 << ADEN) | (1 << ADIE) | (1 << ADSC);
 }
@@ -97,7 +95,7 @@ void adcInit(void) {
   ADCSRB &= (1 << 7) | (1 << 5) | (1 << 4);
 
   // 50000U
-  start16BitTimer(TIMER5, 4500U, &randfeed);
+  start16BitTimer(TIMER5, 4500U, &sampleADC);
 }
 
 ISR(ADC_vect) {

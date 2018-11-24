@@ -1,4 +1,5 @@
 #include "hal_glcd.h"
+#include "util.h"
 
 #include <avr/io.h>
 
@@ -37,14 +38,28 @@ source: glcd_128x64_spec.pdf
 
 */
 
-volatile static uint8_t count = 0;
+#define NOPS_INIT 25
+#define NOPS_DISABLE 5
+#define NOPS_SETUP 5
+#define NOPS_HOLD 25
 
-static void halGlcdCtrlBusyWait() {
-  // for (uint8_t j = 0; j < 255; ++j) {
-  for (uint8_t i = 0; i < 40; ++i) {
+static inline void halGlcdCtrlBusyWaitDisable() {
+  for (uint8_t i = 0; i < NOPS_DISABLE; ++i) {
     asm volatile("nop" :::);
   }
   //}
+}
+
+static inline void halGlcdCtrlBusyWaitSetup() {
+  for (uint8_t i = 0; i < NOPS_SETUP; ++i) {
+    asm volatile("nop" :::);
+  }
+}
+
+static inline void halGlcdCtrlBusyWaitHold() {
+  for (uint8_t i = 0; i < NOPS_HOLD; ++i) {
+    asm volatile("nop" :::);
+  }
 }
 
 /*
@@ -54,13 +69,13 @@ write means RW=L
 static void halGlcdCtrlWriteCmd(const bool controller2, const uint8_t data) {
   PORTE = GL_RESET;
   PORTE &= ~GL_E;
-  halGlcdCtrlBusyWait();
+  halGlcdCtrlBusyWaitDisable();
   DDRA = 0xFF;
   PORTA = data;
   PORTE = (controller2 ? GL_CS1 : GL_CS2) | GL_RESET;
-  halGlcdCtrlBusyWait();
+  halGlcdCtrlBusyWaitSetup();
   PORTE |= GL_E;
-  halGlcdCtrlBusyWait();
+  halGlcdCtrlBusyWaitHold();
   PORTE &= ~GL_E;
 }
 
@@ -71,14 +86,14 @@ write means RW=L
 static void halGlcdCtrlWriteData(const bool controller2, const uint8_t data) {
   PORTE = GL_RESET;
   PORTE &= ~GL_E;
-  halGlcdCtrlBusyWait();
+  halGlcdCtrlBusyWaitDisable();
   DDRA = 0xFF;
   PORTA = data;
   PORTE = (controller2 ? GL_CS1 : GL_CS2) | GL_RESET;
   PORTE |= GL_RS;
-  halGlcdCtrlBusyWait();
+  halGlcdCtrlBusyWaitSetup();
   PORTE |= GL_E;
-  halGlcdCtrlBusyWait();
+  halGlcdCtrlBusyWaitHold();
   PORTE &= ~GL_E;
 }
 
@@ -89,14 +104,14 @@ read means RW=H
 static uint8_t halGlcdCtrlReadData(const bool controller2) {
   PORTE = GL_RESET;
   PORTE &= ~GL_E;
-  halGlcdCtrlBusyWait();
+  halGlcdCtrlBusyWaitDisable();
   DDRA = 0x00;
   PORTE = (controller2 ? GL_CS1 : GL_CS2) | GL_RESET;
   PORTE |= GL_RS;
   PORTE |= GL_RW;
-  halGlcdCtrlBusyWait();
+  halGlcdCtrlBusyWaitSetup();
   PORTE |= GL_E;
-  halGlcdCtrlBusyWait();
+  halGlcdCtrlBusyWaitHold();
   return PINA;
   PORTE &= ~GL_E;
 }
@@ -128,10 +143,15 @@ static void halGlcdTurnOn(const bool on) {
 
 /*
 Initializes the microcontroller’s interface to the GLCD, reset and initializes of the display
-controllers. After calling this function the GLCD should be empty and ready for use.
+controllers. After calling this function the GLCD is empty and ready for use.
 */
 uint8_t halGlcdInit(void) {
   DDRE = 0xFF;
+
+  for (uint8_t i = 0; i < NOPS_INIT; ++i) {
+    asm volatile("nop" :::);
+  }
+
   halGlcdTurnOn(true);
 
   halGlcdSetAddress(0, 0);
@@ -140,7 +160,7 @@ uint8_t halGlcdInit(void) {
   }
 
   halGlcdSetAddress(0, 0);
-  return 0;
+  return SUCCESS;
 }
 
 static uint8_t xColStatic, yPageStatic;
@@ -162,7 +182,7 @@ uint8_t halGlcdSetAddress(const uint8_t xCol, const uint8_t yPage) {
   }
 
   halGlcdCtrlSetAddress(controller2, yPage, xCol % 64);
-  return 0;
+  return SUCCESS;
 }
 
 /*This function writes data to the display RAM of the GLCD controller at the currently set address.
@@ -193,19 +213,36 @@ uint8_t halGlcdWriteData(const uint8_t data) {
   // PORTK = xColStatic;
   // PORTL = yPageStatic;
 
-  return 0;
+  return SUCCESS;
 }
 
 uint8_t halGlcdReadData() {
 
-  // FIXME: not implemented
+  bool controller2 = false;
+  if (xColStatic > 63) {
+    controller2 = true;
+  }
 
-  return halGlcdCtrlReadData(false);
+  uint8_t data = halGlcdCtrlReadData(controller2);
+
+  xColStatic++;
+  if (xColStatic == 64) {
+    halGlcdCtrlSetAddress(true, yPageStatic, xColStatic % 64);
+  }
+
+  if (xColStatic == 128) {
+    xColStatic = 0;
+    yPageStatic++;
+    yPageStatic %= (GLC_HEIGHT / GLC_PAGEH);
+    halGlcdCtrlSetAddress(false, yPageStatic, xColStatic % 64);
+  }
+
+  return data;
 }
 
 uint8_t halGlcdSetYShift(const uint8_t yshift) {
   const uint8_t data = 0xC0 | (0x3f & yshift);
   halGlcdCtrlWriteCmd(false, data);
   halGlcdCtrlWriteCmd(true, data);
-  return 0;
+  return SUCCESS;
 }

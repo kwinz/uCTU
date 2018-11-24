@@ -32,26 +32,28 @@ static void dataRequestCallback(void) {
   sei();
 }
 
+/**
+ * Handles
+ * sdcardInit(); mp3Init(&dataRequestCallback); and adcInit();
+ */
 void songInit(void) {
   if (HAVE_MP3_BOARD) {
     PORTK++;
     spiInit();
-    // busyWaitMS(500);
+    PORTK++;
     const error_t sdcarderror = sdcardInit();
     if (SUCCESS != sdcarderror) {
       PORTA = 0xAA;
-      PORTK++;
       fail();
     }
-    PORTK++;
+
     mp3Init(&dataRequestCallback);
-    PORTK++;
   }
 }
 
 /**
- * Be sure to call
- * sdcardInit(); mp3Init(&dataRequestCallback); and adcInit(); first
+ * Plays a song and then calls songOver() callback with the song that just finished
+ * Be sure to call songInit() exactly once first.
  */
 void songPlay(const Song_t song, void (*songOver)(const Song_t song)) {
   if (song != SONG_NOSONG) {
@@ -64,35 +66,41 @@ void songPlay(const Song_t song, void (*songOver)(const Song_t song)) {
   // mp3SetVolume(0xff);
 }
 
+/**
+ * Needs to be called regularly (5ms?) to keep playing a song set with songPlay.
+ *
+ * Be sure to call songInit() exactly once first. Also it is recommended to call #adcInit() once
+ * before.
+ */
 void songTick(void) {
   if (currentSong == SONG_NOSONG) {
     return;
   }
 
   if (byteAddress >= songEnd) {
+    Song_t currentSongCopy = currentSong;
     currentSong = SONG_NOSONG;
-    (*songOverCallback)(currentSong);
+    (*songOverCallback)(currentSongCopy);
+
     return;
   }
 
-  while (!mp3Busy()) {
-    // PORTK++;
+  if (!mp3Busy()) {
     cli();
     if (haveNewVolume) {
       haveNewVolume = false;
       if (oldVolume != volumeFromADC) {
         oldVolume = volumeFromADC;
         sei();
-        // mp3SetVolume(volumeFromADC);
+        mp3SetVolume(volumeFromADC);
       }
     }
     sei();
+  }
 
-    // we disable interrupts during mp3 send because
-    // we get audio glitches if someone else accesses the SPI
+  for (uint8_t i = 0; i < 5 && !mp3Busy(); i++) {
     sdcardReadBlock(byteAddress, buffer);
     mp3SendMusic(buffer);
-    //
     byteAddress += 32;
   }
 }
