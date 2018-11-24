@@ -22,7 +22,8 @@
 #define GLCD_CLEAR 0x00
 
 /** Number of spaces that tabs (\t) is replaced with. */
-#define TAB_WIDTH (2)
+// Unused, we don't support printing tabs
+//#define TAB_WIDTH (2)
 
 /*  Use this macros if you want sth real equal sided,
     the LCD dots don't have a squared aspect ratio. */

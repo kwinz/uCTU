@@ -3,6 +3,8 @@
 #include "string.h"
 #include "tools.h"
 
+#include <avr/pgmspace.h>
+
 static uint8_t yshiftStatic = 0;
 
 /* The frambuffer is relatively big with 1KiB,
@@ -203,7 +205,19 @@ void glcdDrawHorizontal(const uint8_t y, void (*drawPx)(const uint8_t, const uin
    function. Should be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
 */
 void glcdDrawChar(const char c, const xy_point p, const font *f,
-                  void (*drawPx)(const uint8_t, const uint8_t)) {}
+                  void (*drawPx)(const uint8_t, const uint8_t)) {
+  const uint8_t base_x = p.x;
+  for (uint8_t char_x = 0; char_x < f->width; ++char_x) {
+    uint8_t x = char_x + base_x;
+    const uint8_t colByte = pgm_read_byte(f->font + ((c - f->startChar) * f->width + char_x));
+    for (uint8_t char_y = 0; char_y < f->height; ++char_y) {
+      const uint8_t y = p.y - f->height + char_y;
+      if (colByte & (1 << char_y)) {
+        drawPx(x, y);
+      }
+    }
+  }
+}
 
 /** \brief          Draws a character a given point using a given drawing function and a given
    font. \param text     Text to display. \param p        Position where to display the text (the
@@ -216,28 +230,31 @@ void glcdDrawText(const char *text, const xy_point p, const font *f,
   uint8_t charIndex = 0;
   while (*text != '\0') {
     uint8_t base_x = p.x + charIndex * f->charSpacing;
-    for (uint8_t char_x = 0; char_x < f->width; ++char_x) {
-      uint8_t x = char_x + base_x;
-      const uint8_t colByte = pgm_read_byte(f->font + ((*text - f->startChar) * f->width + char_x));
-      for (uint8_t char_y = 0; char_y < f->height; ++char_y) {
-        const uint8_t y = p.y - f->height + char_y;
-        if (colByte & (1 << char_y)) {
-          drawPx(x, y);
-        }
-      }
-    }
+    xy_point char_point = {base_x, p.y};
+    glcdDrawChar(*text, char_point, f, drawPx);
     charIndex++;
     text++;
   }
 }
 
-/** \brief          Draws a character a given point using a given drawing function and a given
-   font. \param text     Text to display. The text is stored on the program memory. \param p
-   Position where to display the text (the anchor is bottom left). \param f        Font to use.
-    \param drawPx   Drawing function. Should be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
+#define GLCD_STRBUFF_RAM_SIZE 30
+
+/**
+ * \brief  Draws a character a given point using a given drawing function and a given font.
+
+ * Supports strings with at most GLCD_STRBUFF_RAM_SIZE length.
+
+   \param text     Text to display. The text is stored on the program memory.
+   \param p        Position where to display the text (the anchor is bottom left).
+   \param f        Font to use.
+   \param drawPx   Drawing function. Should be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
 */
 void glcdDrawTextPgm(const char *text, const xy_point p, const font *f,
-                     void (*drawPx)(const uint8_t, const uint8_t)) {}
+                     void (*drawPx)(const uint8_t, const uint8_t)) {
+  char strbuff_ram[GLCD_STRBUFF_RAM_SIZE];
+  strncpy_PF(strbuff_ram, (uint_farptr_t)(intptr_t)text, GLCD_STRBUFF_RAM_SIZE);
+  glcdDrawText(strbuff_ram, p, f, drawPx);
+}
 
 /** \brief          Set the Y shift for the GLCD, allowing you to implement vertical scrolling.
     \param yshift   Y position in RAM that becomes the top line of the display
