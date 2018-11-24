@@ -241,7 +241,7 @@ void glcdDrawText(const char *text, const xy_point p, const font *f,
   }
 }
 
-#define GLCD_STRBUFF_RAM_SIZE 30
+#define GLCD_STRBUFF_RAM_SIZE 40
 
 /**
  * \brief  Draws a character a given point using a given drawing function and a given font.
@@ -256,7 +256,8 @@ void glcdDrawText(const char *text, const xy_point p, const font *f,
 void glcdDrawTextPgm(const char *text, const xy_point p, const font *f,
                      void (*drawPx)(const uint8_t, const uint8_t)) {
   char strbuff_ram[GLCD_STRBUFF_RAM_SIZE];
-  strncpy_PF(strbuff_ram, (uint_farptr_t)(intptr_t)text, GLCD_STRBUFF_RAM_SIZE);
+  strncpy_PF(strbuff_ram, (intptr_t)text, GLCD_STRBUFF_RAM_SIZE - 1);
+  strbuff_ram[GLCD_STRBUFF_RAM_SIZE - 1] = '\0';
   glcdDrawText(strbuff_ram, p, f, drawPx);
 }
 

@@ -133,6 +133,9 @@ void background() {
 
 static void songOver(Song_t song) { songPlay(song, &songOver); }
 
+const char macFormat_p[] PROGMEM = "%02x:%02x:%02x:%02x:%02x:%02x";
+const char presSync_p[] PROGMEM = "Press sync (or any)\nkey to connect!\0";
+
 int main(void) {
   setup();
 
@@ -148,10 +151,16 @@ int main(void) {
 
       glcdFillScreen(GLCD_CLEAR);
       glcdSetYShift(00);
-      xy_point c = {20, 10};
-      glcdDrawText("press any key", c, &Standard5x7, &glcdSetPixel);
-      c.y = 40;
-      glcdDrawText("to connect", c, &Standard5x7, &glcdSetPixel);
+      xy_point c = {5, 10};
+      glcdDrawTextPgm(presSync_p, c, &Standard5x7, &glcdSetPixel);
+      c.y = 30;
+      {
+        // buffer of 6 characters + '/0' byte, see mac_format format string
+        char macString[6 * 3 + 1];
+        sprintf_P(macString, macFormat_p, _mac[0][0], _mac[0][1], _mac[0][2], _mac[0][3],
+                  _mac[0][4], _mac[0][5]);
+        glcdDrawText(macString, c, &Standard5x7, &glcdSetPixel);
+      }
 
       gamestate = CONNECT;
     } break;
