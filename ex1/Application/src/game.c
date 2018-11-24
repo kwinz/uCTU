@@ -15,6 +15,7 @@ extern volatile GameState_t gamestate;
 static uint16_t ticks = 0;
 static uint8_t yshift = 0;
 static xy_point ball = {5, 50};
+// static uint8_t level = 0;
 
 typedef struct lry_point_t {
   uint8_t l, r, y;
@@ -83,6 +84,32 @@ void rcvAccel(const uint8_t wii, const uint16_t x, const uint16_t y, const uint1
   sei();
 }
 
+static inline void drawBallOptimized(xy_point ball, void (*drawPx)(const uint8_t, const uint8_t)) {
+  uint8_t x = ball.x, y = ball.y;
+  drawPx(x + 1, y);
+  drawPx(x + 2, y);
+
+  y++;
+  y %= 64;
+  drawPx(x, y);
+  drawPx(x + 1, y);
+  drawPx(x + 2, y);
+  drawPx(x + 3, y);
+
+  y++;
+  y %= 64;
+  drawPx(x, y);
+  drawPx(x + 1, y);
+  drawPx(x + 2, y);
+  drawPx(x + 3, y);
+
+  y++;
+  y %= 64;
+
+  drawPx(x + 1, y);
+  drawPx(x + 2, y);
+}
+
 void gameStart(void) {
   glcdFillScreen(GLCD_CLEAR);
   yshift = 0;
@@ -92,14 +119,7 @@ void gameTick(void) {
   ticks++;
 
   // delete old ball
-  {
-    xy_point left_rect = ball;
-    xy_point right_rect = ball;
-    right_rect.x += 4;
-    right_rect.y += 4;
-    glcdFillRectWrappingSafe(left_rect, right_rect, &glcdClearPixel);
-    // glcdFillRect(, 1, &glcdClearPixel);
-  }
+  drawBallOptimized(ball, &glcdClearPixel);
 
   const uint8_t top = yshift;
   const uint8_t bottom = (top + 63) % 64;
@@ -151,13 +171,7 @@ void gameTick(void) {
   }
 
   // draw new ball
-  {
-    xy_point left_rect = ball;
-    xy_point right_rect = ball;
-    right_rect.x += 4;
-    right_rect.y += 4;
-    glcdFillRectWrappingSafe(left_rect, right_rect, &glcdSetPixel);
-  }
+  drawBallOptimized(ball, &glcdSetPixel);
 
   if (ticks % 10 == 0) {
     glcdDrawHorizontal(yshift, &glcdClearPixel);
