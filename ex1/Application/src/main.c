@@ -40,6 +40,7 @@ void setRumblerCallback(const uint8_t wii, const error_t status) {
     PORTA = 0xAA;
     fail();
   }
+  // wiiUserSetRumbler(wii, false, &setRumblerCallback);
 }
 
 void rcvButton(const uint8_t wii, const uint16_t buttonStates) {
@@ -58,6 +59,8 @@ void rcvButton(const uint8_t wii, const uint16_t buttonStates) {
   //  wiiUserSetRumbler(wii, rumbler, &setRumblerCallback);
   //}
 }
+
+static int16_t rumblingTicks = -1;
 
 static void setAccelCallback(uint8_t wii, error_t status) {}
 
@@ -118,6 +121,14 @@ void background() {
     songTick();
   }
   syncScreen();
+
+  if (unlikely(rumblingTicks > 0)) {
+    --rumblingTicks;
+    if (unlikely(0 == rumblingTicks)) {
+      wiiUserSetRumbler(0, false, &setRumblerCallback);
+      rumblingTicks = -1;
+    }
+  }
 }
 
 static void songOver(Song_t song) { songPlay(song, &songOver); }
@@ -154,8 +165,8 @@ int main(void) {
       xy_point c = {20, 20};
       glcdDrawText("New game: A", c, &Standard5x7, &glcdSetPixel);
       gamestate = MENU;
-      wiiUserSetRumbler(1, true, &setRumblerCallback);
-      wiiUserSetRumbler(1, false, &setRumblerCallback);
+      wiiUserSetRumbler(0, true, &setRumblerCallback);
+      rumblingTicks = 400;
     } break;
     case MENU: {
       sei();
@@ -182,6 +193,8 @@ int main(void) {
       xy_point c = {20, 20};
       glcdDrawText("u ded", c, &Standard5x7, &glcdSetPixel);
       gamestate = DEAD;
+      wiiUserSetRumbler(0, true, &setRumblerCallback);
+      rumblingTicks = 400;
 
     } break;
     case DEAD: {

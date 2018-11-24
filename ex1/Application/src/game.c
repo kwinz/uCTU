@@ -30,6 +30,20 @@ static lry_point obstacles[OBSTACLE_COUNT];
 
 // static functions
 
+void gameStart(void) {
+  glcdFillScreen(GLCD_CLEAR);
+
+  ticks = 0;
+  yshift = 0;
+  ball = (xy_point){.x = 64, .y = 50};
+  level = 0;
+
+  memset(obstacles, 0, 3 * sizeof(lry_point));
+  obstacles[0].y = 10;
+  obstacles[1].y = 30;
+  obstacles[2].y = 50;
+}
+
 // callbacks, ISRs and/or public interfaces
 
 /**
@@ -117,20 +131,6 @@ static inline void drawHorizontalLineOptimized(uint8_t left, const uint8_t right
   for (; left <= right; left++) {
     drawPx(left, y);
   }
-}
-
-void gameStart(void) {
-  glcdFillScreen(GLCD_CLEAR);
-
-  ticks = 0;
-  yshift = 0;
-  ball = (xy_point){.x = 5, .y = 50};
-  level = 0;
-
-  memset(obstacles, 0, 3 * sizeof(lry_point));
-  obstacles[0].y = 10;
-  obstacles[1].y = 30;
-  obstacles[2].y = 50;
 }
 
 void gameTick(void) {
