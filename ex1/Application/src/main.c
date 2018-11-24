@@ -64,9 +64,18 @@ void conCallback(const uint8_t wii, const connection_status_t status) {
   }
 }
 
+extern sdcard_block_t buffer;
+extern uint32_t byteAddress;
+
 static void dataRequestCallback(void) {
   // we are woken up from sleep due to the callback interrupt
   // don't do anything else here
+  sei();
+  // while (!mp3Busy()) {
+  //  sdcardReadBlock(byteAddress, buffer);
+  //  mp3SendMusic(buffer);
+  //  byteAddress += 32;
+  //}
 }
 
 void testGlcd() {
@@ -144,11 +153,6 @@ void setup() {
     }
   }
 
-  initLcd();
-  clearScreen();
-
-  glcdInit();
-
   sei();
 
   // dispString("Booted7", 0, 0);
@@ -160,17 +164,22 @@ void setup() {
   //===========================
 
   if (HAVE_MP3_BOARD) {
+    PORTK++;
     spiInit();
-
+    // busyWaitMS(500);
     const error_t sdcarderror = sdcardInit();
     if (SUCCESS != sdcarderror) {
       PORTA = 0xAA;
-
+      PORTK++;
       fail();
     }
-
     PORTK++;
   }
+
+  initLcd();
+  clearScreen();
+
+  glcdInit();
 
   adcInit();
 
@@ -194,7 +203,7 @@ void background() {
   syncScreen();
 }
 
-void songOver(Song_t song) {}
+static void songOver(Song_t song) {}
 
 int main(void) {
   setup();
@@ -206,7 +215,7 @@ int main(void) {
       sei();
 
       if (HAVE_MP3_BOARD) {
-        songPlay(SONG_BATMAN, &songOver);
+        songPlay(SONG_GLORY, &songOver);
       }
 
       glcdFillScreen(GLCD_CLEAR);
@@ -234,6 +243,9 @@ int main(void) {
     } break;
     case PLAYING_ENTER: {
       sei();
+      if (HAVE_MP3_BOARD) {
+        songPlay(SONG_GLORY, &songOver);
+      }
       gameStart();
       gamestate = PLAYING;
     } break;
