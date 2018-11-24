@@ -112,7 +112,13 @@ static void testGlcd(void) {
     glcdDrawLine(p1, p2, &glcdSetPixel);
   }
 
-  // fail();
+  {
+    xy_point p2 = {45, 45};
+    xy_point p1 = {50, 50};
+    glcdDrawRect(p1, p2, &glcdInvertPixel);
+  }
+
+  fail();
 }
 
 void setup() {

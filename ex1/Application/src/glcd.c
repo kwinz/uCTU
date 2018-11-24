@@ -5,6 +5,14 @@
 
 static uint8_t yshiftStatic = 0;
 
+/* The frambuffer is relatively big with 1KiB,
+but it makes the GLCD that much faster.
+We can only write/read byte-sized chunks.
+By having them in RAM, we can just straight write
+one byte to glcd instead of having to
+1. read back, 2. modify, 3. reset address, 4. write back
+the whole byte with the associated delays for each #drawPx().
+*/
 static uint8_t framebuffer[GLC_WIDTH][GLC_HEIGHT / GLC_PAGEH] = {{0}};
 
 /** \brief      Initializes port and clears the content of the GLCD. */
@@ -106,7 +114,6 @@ void glcdDrawLine(const xy_point p1, const xy_point p2,
   if (!(longest > shortest)) {
     longest = h;
     shortest = w;
-
     if (y2 > y) {
       dy2 = 1;
     } else if (y2 < y) {
@@ -135,7 +142,25 @@ void glcdDrawLine(const xy_point p1, const xy_point p2,
     \param drawPx   Drawing function. Should be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
 */
 void glcdDrawRect(const xy_point p1, const xy_point p2,
-                  void (*drawPx)(const uint8_t, const uint8_t)) {}
+                  void (*drawPx)(const uint8_t, const uint8_t)) {
+  const uint8_t left = min(p1.x, p2.x);
+  const uint8_t right = max(p1.x, p2.x);
+  const uint8_t top = min(p1.y, p2.y);
+  const uint8_t bottom = max(p1.y, p2.y);
+
+  for (uint8_t y = top; y <= bottom; ++y) {
+    drawPx(left, y);
+    drawPx(right, y);
+  }
+
+  // avoid to overdraw the already set edges
+  if (left + 1 <= right - 1) {
+    for (uint8_t x = left + 1; x <= right - 1; ++x) {
+      drawPx(x, top);
+      drawPx(x, bottom);
+    }
+  }
+}
 
 /** \brief          Fills a rectangle from p1 to p2 using a given drawing function.
     \param p1       First corner.
@@ -149,8 +174,8 @@ void glcdFillRect(const xy_point p1, const xy_point p2,
   const uint8_t top = min(p1.y, p2.y);
   const uint8_t bottom = max(p1.y, p2.y);
 
-  for (uint8_t x = left; x < right; ++x) {
-    for (uint8_t y = top; y < bottom; ++y) {
+  for (uint8_t x = left; x <= right; ++x) {
+    for (uint8_t y = top; y <= bottom; ++y) {
       drawPx(x, y);
     }
   }
