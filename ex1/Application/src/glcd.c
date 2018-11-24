@@ -187,7 +187,11 @@ void glcdFillRect(const xy_point p1, const xy_point p2,
     \param x        x-position of the line.
     \param drawPx   Drawing function. Should be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
 */
-void glcdDrawVertical(const uint8_t x, void (*drawPx)(const uint8_t, const uint8_t)) {}
+void glcdDrawVertical(const uint8_t x, void (*drawPx)(const uint8_t, const uint8_t)) {
+  for (uint8_t y = 0; y < GLC_HEIGHT; ++x) {
+    drawPx(x, y);
+  }
+}
 
 /** \brief          Draws a horizontal line at a given y-coordinate using a given drawing
    function. \param y        y-position of the line. \param drawPx   Drawing function. Should be
