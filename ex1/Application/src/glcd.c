@@ -188,7 +188,7 @@ void glcdFillRect(const xy_point p1, const xy_point p2,
     \param drawPx   Drawing function. Should be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
 */
 void glcdDrawVertical(const uint8_t x, void (*drawPx)(const uint8_t, const uint8_t)) {
-  for (uint8_t y = 0; y < GLC_HEIGHT; ++x) {
+  for (uint8_t y = 0; y < GLC_HEIGHT; ++y) {
     drawPx(x, y);
   }
 }
@@ -231,12 +231,24 @@ void glcdDrawChar(const char c, const xy_point p, const font *f,
 void glcdDrawText(const char *text, const xy_point p, const font *f,
                   void (*drawPx)(const uint8_t, const uint8_t)) {
 
-  uint8_t charIndex = 0;
+  uint8_t countNewlines = 0;
+  uint8_t charInLine = 0;
   while (*text != '\0') {
-    uint8_t base_x = p.x + charIndex * f->charSpacing;
-    xy_point char_point = {base_x, p.y};
+    if (*text == '\r') {
+      text++;
+      continue;
+    }
+    if (*text == '\n') {
+      countNewlines++;
+      charInLine = 0;
+      text++;
+      continue;
+    }
+    const uint8_t base_x = p.x + charInLine * f->charSpacing;
+    const uint8_t base_y = p.y + countNewlines * f->lineSpacing;
+    xy_point char_point = {base_x, base_y};
     glcdDrawChar(*text, char_point, f, drawPx);
-    charIndex++;
+    charInLine++;
     text++;
   }
 }
