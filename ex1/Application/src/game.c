@@ -15,15 +15,14 @@ extern volatile GameState_t gamestate;
 static uint16_t ticks = 0;
 static uint8_t yshift = 0;
 static xy_point ball = {5, 50};
-static xy_point old_ball = {5, 50};
 
 typedef struct lry_point_t {
   uint8_t l, r, y;
   bool active;
 } lry_point;
 
-static lry_point obstacle0 = {0, 0, 10, false}, obstacle1 = {0, 0, 30, false},
-                 obstacle2 = {0, 0, 50, false};
+static lry_point obstacle0 = {0, 0, 10, false};
+// obstacle1 = {0, 0, 30, false}, obstacle2 = {0, 0, 50, false};
 
 // static functions
 
@@ -37,7 +36,8 @@ static lry_point obstacle0 = {0, 0, 10, false}, obstacle1 = {0, 0, 30, false},
 void glcdFillRectWrappingSafe(xy_point p1, xy_point p2,
                               void (*drawPx)(const uint8_t, const uint8_t)) {
 
-  const uint8_t orig_p1y = p1.y, orig_p2y = p2.y;
+  // const uint8_t orig_p1y = p1.y;
+  const uint8_t orig_p2y = p2.y;
   /*
   if (p1.y > 80) {
 

@@ -152,7 +152,7 @@ void setup() {
 
   glcdInit();
 
-  dispString("Booted8", 0, 0);
+  dispString("Booted7", 0, 0);
 
   // start16BitTimer(TIMER4, 10000U, &mySyncScreen);
 
@@ -210,7 +210,6 @@ void background() {
       byteAddress += 32;
     }
   }
-
   syncScreen();
 }
 
