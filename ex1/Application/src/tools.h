@@ -41,3 +41,16 @@ typedef enum {
   HIGHSCORE_PAINT,
   HIGHSCORE
 } GameState_t;
+
+// defined in header file to get guaranteed inline for this helper function
+inline __attribute__((always_inline)) uint8_t min(uint8_t a, uint8_t b) {
+  if (a > b)
+    return b;
+  return a;
+}
+
+inline __attribute__((always_inline)) uint8_t max(uint8_t a, uint8_t b) {
+  if (a > b)
+    return a;
+  return b;
+}

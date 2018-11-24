@@ -15,14 +15,14 @@ extern volatile GameState_t gamestate;
 static uint16_t ticks = 0;
 static uint8_t yshift = 0;
 static xy_point ball = {5, 50};
-// static uint8_t level = 0;
+static uint8_t level = 0;
 
 typedef struct lry_point_t {
   uint8_t l, r, y;
   bool active;
 } lry_point;
 
-static lry_point obstacle0 = {0, 0, 10, false};
+static lry_point[3] obstacles;
 // obstacle1 = {0, 0, 30, false}, obstacle2 = {0, 0, 50, false};
 
 // static functions
@@ -105,7 +105,6 @@ static inline void drawBallOptimized(xy_point ball, void (*drawPx)(const uint8_t
 
   y++;
   y %= 64;
-
   drawPx(x + 1, y);
   drawPx(x + 2, y);
 }
@@ -148,7 +147,7 @@ void gameTick(void) {
   }
 
   // move ball down
-  if (ticks % 6 == 0) {
+  if (ticks % (6 - min(level, 5)) == 0) {
     // PORTK = ball.y;
     // PORTL = bottom;
 
@@ -173,7 +172,7 @@ void gameTick(void) {
   // draw new ball
   drawBallOptimized(ball, &glcdSetPixel);
 
-  if (ticks % 10 == 0) {
+  if (ticks % (10 - min(level, 8)) == 0) {
     glcdDrawHorizontal(yshift, &glcdClearPixel);
     yshift++;
     yshift %= 64;
@@ -193,5 +192,9 @@ void gameTick(void) {
       glcdDrawLine(left_rect, right_rect, &glcdSetPixel);
       obstacle0.active = true;
     }
+  }
+
+  if (ticks % 1000 == 0) {
+    level++;
   }
 }

@@ -69,18 +69,6 @@ void glcdInvertPixel(const uint8_t x, const uint8_t y) {
   halGlcdWriteData(framebuffer[x][pageNumber]);
 }
 
-static inline uint8_t min(uint8_t a, uint8_t b) {
-  if (a > b)
-    return b;
-  return a;
-}
-
-static inline uint8_t max(uint8_t a, uint8_t b) {
-  if (a > b)
-    return a;
-  return b;
-}
-
 /** \brief          Draws a line from p1 to p2 using a given drawing function.
     \param p1       Start point.
     \param p2       End point.
