@@ -148,6 +148,7 @@ controllers. After calling this function the GLCD is empty and ready for use.
 uint8_t halGlcdInit(void) {
   DDRE = 0xFF;
 
+  // NOPS_INIT allows for tighter NOPS_HOLD timing
   for (uint8_t i = 0; i < NOPS_INIT; ++i) {
     asm volatile("nop" :::);
   }

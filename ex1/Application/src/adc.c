@@ -73,8 +73,10 @@ static void sampleADC() {
   } else {
     sampleRand();
   }
+
   // ADEN ADSC ADATE ADIF ADIE ADPS2 ADPS1 ADPS0
-  ADCSRA = (1 << ADEN) | (1 << ADIE) | (1 << ADSC);
+  // enable ADC, enable interrupts, activate highest prescaler and start conversion
+  ADCSRA = (1 << ADEN) | (1 << ADIE) | (1 << ADSC) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
 }
 
 void adcInit(void) {

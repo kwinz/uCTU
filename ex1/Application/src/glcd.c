@@ -1,9 +1,9 @@
 #include "glcd.h"
 #include "hal_glcd.h"
-#include "string.h"
 #include "tools.h"
 
 #include <avr/pgmspace.h>
+#include <string.h>
 
 static uint8_t yshiftStatic = 0;
 

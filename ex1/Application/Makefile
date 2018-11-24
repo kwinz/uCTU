@@ -23,7 +23,7 @@ OBJECTS  := $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 
 .PHONY: all clean install
 
-all: $(EXEC) install
+all: $(EXEC)
 
 
 $(EXEC): $(OBJECTS)

@@ -2,10 +2,11 @@
 #include "font.h"
 #include "glcd.h"
 #include "lcd.h"
-#include "mp3.h"
 #include "rand.h"
 #include "tools.h"
+
 #include <avr/interrupt.h>
+#include <string.h>
 
 static volatile bool moveRight = false;
 static volatile uint8_t speed = 0;
@@ -22,7 +23,9 @@ typedef struct lry_point_t {
   bool active;
 } lry_point;
 
-static lry_point[3] obstacles;
+#define OBSTACLE_COUNT 3
+
+static lry_point obstacles[OBSTACLE_COUNT];
 // obstacle1 = {0, 0, 30, false}, obstacle2 = {0, 0, 50, false};
 
 // static functions
@@ -109,9 +112,25 @@ static inline void drawBallOptimized(xy_point ball, void (*drawPx)(const uint8_t
   drawPx(x + 2, y);
 }
 
+static inline void drawHorizontalLineOptimized(uint8_t left, const uint8_t right, const uint8_t y,
+                                               void (*drawPx)(const uint8_t, const uint8_t)) {
+  for (; left <= right; left++) {
+    drawPx(left, y);
+  }
+}
+
 void gameStart(void) {
   glcdFillScreen(GLCD_CLEAR);
+
+  ticks = 0;
   yshift = 0;
+  ball = (xy_point){.x = 5, .y = 50};
+  level = 0;
+
+  memset(obstacles, 0, 3 * sizeof(lry_point));
+  obstacles[0].y = 10;
+  obstacles[1].y = 30;
+  obstacles[2].y = 50;
 }
 
 void gameTick(void) {
@@ -147,19 +166,27 @@ void gameTick(void) {
   }
 
   // move ball down
-  if (ticks % (6 - min(level, 5)) == 0) {
+  if (ticks % (6 - min(level, 4)) == 0) {
     // PORTK = ball.y;
     // PORTL = bottom;
 
-    if ((ball.y + 6) % 64 == obstacle0.y && obstacle0.l < ball.x && ball.x < obstacle0.r) {
-    } else if ((ball.y + 6) % 64 == bottom) {
-    } else {
+    bool colided = false;
+    for (uint8_t i = 0; i < OBSTACLE_COUNT; ++i) {
+      const lry_point obstacle = obstacles[i];
+      if (likely(obstacle.active) && (ball.y + 6) % 64 == obstacle.y && obstacle.l < ball.x &&
+          ball.x < obstacle.r) {
+        colided = true;
+        continue;
+      }
+    }
+
+    if ((ball.y + 6) % 64 == bottom) {
+      colided = true;
+    }
+
+    if (!colided) {
       ball.y++;
       ball.y %= 64;
-
-      // if (bottom < ball.y + 6) {
-      //  ball.y = bottom - 6;
-      //} else
     }
 
     // are we dead?
@@ -172,7 +199,7 @@ void gameTick(void) {
   // draw new ball
   drawBallOptimized(ball, &glcdSetPixel);
 
-  if (ticks % (10 - min(level, 8)) == 0) {
+  if (ticks % (10 - min(level, 7)) == 0) {
     glcdDrawHorizontal(yshift, &glcdClearPixel);
     yshift++;
     yshift %= 64;
@@ -180,17 +207,16 @@ void gameTick(void) {
     const uint8_t top = yshift;
     const uint8_t bottom = (top + 63) % 64;
 
-    if (obstacle0.y == top) {
-      const uint8_t left = rand16() % 64;
-      const uint8_t right = rand16() % 64 + 63;
-      obstacle0.l = left;
-      obstacle0.r = right;
-      obstacle0.y = bottom;
-      const xy_point left_rect = {left, bottom};
-      const xy_point right_rect = {right, bottom};
-      // glcdFillRect(left_rect, right_rect, &glcdSetPixel);
-      glcdDrawLine(left_rect, right_rect, &glcdSetPixel);
-      obstacle0.active = true;
+    for (uint8_t i = 0; i < OBSTACLE_COUNT; ++i) {
+      if (obstacles[i].y == top) {
+        const uint8_t left = rand16() % 64;
+        const uint8_t right = rand16() % 64 + 63;
+        obstacles[i].l = left;
+        obstacles[i].r = right;
+        obstacles[i].y = bottom;
+        drawHorizontalLineOptimized(left, right, bottom, &glcdSetPixel);
+        obstacles[i].active = true;
+      }
     }
   }
 

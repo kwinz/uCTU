@@ -154,6 +154,8 @@ int main(void) {
       xy_point c = {20, 20};
       glcdDrawText("New game: A", c, &Standard5x7, &glcdSetPixel);
       gamestate = MENU;
+      wiiUserSetRumbler(1, true, &setRumblerCallback);
+      wiiUserSetRumbler(1, false, &setRumblerCallback);
     } break;
     case MENU: {
       sei();

@@ -7,9 +7,6 @@
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 
-// clang-format off
-// clang-format on
-
 const PROGMEM uint32_t songstarts[] = {
     3200000, 3590240, 3639392, 4030368, 4360416, 4385760, 4675648, 5004992, 5052096, 5184448,
     5460224, 5692928, 5765088, 6109984, 6778144, 7059968, 7096832, 7148256, 7270240};
@@ -25,16 +22,18 @@ static uint8_t currentSong = SONG_NOSONG;
 static uint32_t byteAddress = 5460224LU;
 static uint32_t songEnd;
 static void (*songOverCallback)(const Song_t song);
+static volatile bool sdcardFaulty = false;
 
 static void dataRequestCallback(void) {
   // we are woken up from sleep due to the callback interrupt
   // don't do anything else here, data feed is handled in background()
+  // we don't set a flag here because checking the ISR bit in
+  // mp3Busy() is very cheap.
   sei();
 }
 
 /**
- * Handles
- * sdcardInit(); mp3Init(&dataRequestCallback); and adcInit();
+ * Handles sdcardInit(), mp3Init(&dataRequestCallback) and adcInit();
  */
 void songInit(void) {
   if (HAVE_MP3_BOARD) {
@@ -43,8 +42,8 @@ void songInit(void) {
     PORTK++;
     const error_t sdcarderror = sdcardInit();
     if (SUCCESS != sdcarderror) {
-      PORTA = 0xAA;
-      fail();
+      sdcardFaulty = true;
+      return;
     }
 
     mp3Init(&dataRequestCallback);
@@ -67,21 +66,26 @@ void songPlay(const Song_t song, void (*songOver)(const Song_t song)) {
 }
 
 /**
+ * Limits the number of buffercopies done per background() run so we
+ * are not monopolizing the CPU.
+ */
+#define MAX_SUCCESSIVE_COPIES_PER_TICK 5
+
+/**
  * Needs to be called regularly (5ms?) to keep playing a song set with songPlay.
  *
  * Be sure to call songInit() exactly once first. Also it is recommended to call #adcInit() once
  * before.
  */
 void songTick(void) {
-  if (currentSong == SONG_NOSONG) {
+  if (unlikely(currentSong == SONG_NOSONG || sdcardFaulty)) {
     return;
   }
 
-  if (byteAddress >= songEnd) {
+  if (unlikely(byteAddress >= songEnd)) {
     Song_t currentSongCopy = currentSong;
     currentSong = SONG_NOSONG;
     (*songOverCallback)(currentSongCopy);
-
     return;
   }
 
@@ -96,11 +100,18 @@ void songTick(void) {
       }
     }
     sei();
-  }
-
-  for (uint8_t i = 0; i < 5 && !mp3Busy(); i++) {
-    sdcardReadBlock(byteAddress, buffer);
-    mp3SendMusic(buffer);
-    byteAddress += 32;
+    for (uint8_t i = 0; i < MAX_SUCCESSIVE_COPIES_PER_TICK; i++) {
+      if (mp3Busy()) {
+        break;
+      }
+      error_t ret = sdcardReadBlock(byteAddress, buffer);
+      if (likely(ret == SUCCESS)) {
+        mp3SendMusic(buffer);
+        byteAddress += 32;
+      } else {
+        sdcardFaulty = true;
+        return;
+      }
+    }
   }
 }
