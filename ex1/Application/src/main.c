@@ -5,6 +5,7 @@
 #include "glcd.h"
 #include "lcd.h"
 #include "mp3.h"
+#include "music.h"
 #include "rand.h"
 #include "sdcard.h"
 #include "spi.h"
@@ -62,10 +63,6 @@ void conCallback(const uint8_t wii, const connection_status_t status) {
     wiiUserConnect(wii, _mac[0], &conCallback);
   }
 }
-
-sdcard_block_t buffer;
-volatile uint32_t byteAddress = 5460224LU;
-// volatile static uint8_t count = 0;
 
 static void dataRequestCallback(void) {
   // we are woken up from sleep due to the callback interrupt
@@ -152,7 +149,9 @@ void setup() {
 
   glcdInit();
 
-  dispString("Booted7", 0, 0);
+  sei();
+
+  // dispString("Booted7", 0, 0);
 
   // start16BitTimer(TIMER4, 10000U, &mySyncScreen);
 
@@ -160,14 +159,17 @@ void setup() {
   // fail();
   //===========================
 
-  sei();
-
   if (HAVE_MP3_BOARD) {
     spiInit();
 
-    PORTK++;
+    const error_t sdcarderror = sdcardInit();
+    if (SUCCESS != sdcarderror) {
+      PORTA = 0xAA;
 
-    sdcardInit();
+      fail();
+    }
+
+    PORTK++;
   }
 
   adcInit();
@@ -184,44 +186,28 @@ void setup() {
   //
 }
 
-static int8_t oldVolume = 0;
-
 void background() {
 
   if (HAVE_MP3_BOARD) {
-    if (!mp3Busy()) {
-      // PORTK++;
-      cli();
-      if (haveNewVolume) {
-        haveNewVolume = false;
-        if (oldVolume != volumeFromADC) {
-          oldVolume = volumeFromADC;
-          sei();
-          mp3SetVolume(volumeFromADC);
-        }
-      }
-      sei();
-
-      // we disable interrupts during mp3 send because
-      // we get audio glitches if someone else accesses the SPI
-      sdcardReadBlock(byteAddress, buffer);
-      mp3SendMusic(buffer);
-      //
-      byteAddress += 32;
-    }
+    songTick();
   }
   syncScreen();
 }
+
+void songOver(Song_t song) {}
 
 int main(void) {
   setup();
 
   cli();
   while (true) {
-
     switch (gamestate) {
     case CONNECT_PAINT: {
       sei();
+
+      if (HAVE_MP3_BOARD) {
+        songPlay(SONG_BATMAN, &songOver);
+      }
 
       glcdFillScreen(GLCD_CLEAR);
       glcdSetYShift(00);

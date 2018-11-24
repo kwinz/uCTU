@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-enum Songs {
+typedef enum Songs {
   SONG_BATMAN = 0,
   SONG_GLORY = 1,
   SONG_BUBBLE = 2,
@@ -23,4 +23,8 @@ enum Songs {
   SONG_VICTORY_FANFARE = 16,
   SONG_Z2CAVE = 17,
   SONG_ZGAGA = 18,
-};
+  SONG_NOSONG
+} Song_t;
+
+void songPlay(Song_t song, void (*songOver)(Song_t song));
+void songTick(void);
