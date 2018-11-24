@@ -72,32 +72,7 @@ static void dataRequestCallback(void) {
   // don't do anything else here
 }
 
-void setup() {
-  DDRH = 0xFF;
-  PORTH = 0x00;
-  DDRK = 0xFF;
-  PORTK = 0x00;
-  clearScreen();
-  DDRL = 0xFF;
-  PORTL = 0x00;
-
-  if (HAVE_BLUETOOTH_BOARD) {
-    uint8_t wii = 0;
-    error_t ret = wiiUserInit(&rcvButton, &rcvAccel);
-    if (ret != SUCCESS) {
-      PORTA = 0xAA;
-      fail();
-    }
-
-    ret = wiiUserConnect(wii, _mac[0], &conCallback);
-    if (ret != SUCCESS) {
-      PORTA = 0xAA;
-      fail();
-    }
-  }
-
-  initLcd();
-  glcdInit();
+void testGlcd() {
 
   glcdFillScreen(GLCD_FILL);
   glcdFillScreen(GLCD_CLEAR);
@@ -140,14 +115,58 @@ void setup() {
     xy_point p1 = {30, 60};
     glcdDrawLine(p1, p2, &glcdSetPixel);
   }
+}
 
-  //===========================
+void mySyncScreen() {
+  sei();
+  syncScreen();
+}
+
+void setup() {
+  DDRH = 0xFF;
+  PORTH = 0x00;
+  DDRK = 0xFF;
+  PORTK = 0x00;
+  DDRL = 0xFF;
+  PORTL = 0x00;
+
+  gamestate = CONNECT_PAINT;
+
+  if (HAVE_BLUETOOTH_BOARD) {
+    uint8_t wii = 0;
+    error_t ret = wiiUserInit(&rcvButton, &rcvAccel);
+    if (ret != SUCCESS) {
+      PORTA = 0xAA;
+      fail();
+    }
+
+    ret = wiiUserConnect(wii, _mac[0], &conCallback);
+    if (ret != SUCCESS) {
+      PORTA = 0xAA;
+      fail();
+    }
+  }
+
+  initLcd();
+  clearScreen();
+
+  glcdInit();
+
+  dispString("Booted8", 0, 0);
+
+  // start16BitTimer(TIMER4, 10000U, &mySyncScreen);
+
+  // testGlcd();
   // fail();
+  //===========================
 
   sei();
 
   if (HAVE_MP3_BOARD) {
     spiInit();
+
+    PORTK++;
+
     sdcardInit();
   }
 
@@ -161,6 +180,8 @@ void setup() {
   // mp3StartSineTest();
 
   start16BitTimer(TIMER3, 4500U, &newTick);
+
+  //
 }
 
 static int8_t oldVolume = 0;
@@ -189,6 +210,8 @@ void background() {
       byteAddress += 32;
     }
   }
+
+  syncScreen();
 }
 
 int main(void) {
@@ -196,6 +219,7 @@ int main(void) {
 
   cli();
   while (true) {
+
     switch (gamestate) {
     case CONNECT_PAINT: {
       sei();

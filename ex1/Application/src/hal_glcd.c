@@ -133,6 +133,12 @@ controllers. After calling this function the GLCD should be empty and ready for 
 uint8_t halGlcdInit(void) {
   DDRE = 0xFF;
   halGlcdTurnOn(true);
+
+  halGlcdSetAddress(0, 0);
+  for (uint16_t i = 0; i < GLC_BYTES; ++i) {
+    halGlcdWriteData(0);
+  }
+
   halGlcdSetAddress(0, 0);
   return 0;
 }
@@ -183,9 +189,9 @@ uint8_t halGlcdWriteData(const uint8_t data) {
     halGlcdCtrlSetAddress(false, yPageStatic, xColStatic % 64);
   }
 
-  PORTH++;
-  PORTK = xColStatic;
-  PORTL = yPageStatic;
+  // PORTH++;
+  // PORTK = xColStatic;
+  // PORTL = yPageStatic;
 
   return 0;
 }
