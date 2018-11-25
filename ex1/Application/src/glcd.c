@@ -69,60 +69,89 @@ void glcdInvertPixel(const uint8_t x, const uint8_t y) {
   halGlcdWriteData(framebuffer[x][pageNumber]);
 }
 
+static void glcdDrawBresenhamX(int16_t p1x, int16_t p1y, int16_t p2x, int16_t p2y,
+                               void (*drawPx)(const uint8_t, const uint8_t)) {
+
+  int16_t ydiff;
+  int8_t yIncrease;
+  if (p2y > p1y) {
+    ydiff = p2y - p1y;
+    yIncrease = 1;
+  } else {
+    ydiff = p1y - p2y;
+    yIncrease = -1;
+  }
+
+  const int16_t xdiff = p2x - p1x;
+  int16_t diff = 2 * ydiff - xdiff;
+
+  for (int16_t y = p1y, x = p1x; x <= p2x; ++x) {
+    drawPx(x, y);
+    if (diff > 0) {
+      y += yIncrease;
+      diff -= 2 * xdiff;
+    }
+    diff += 2 * ydiff;
+  }
+}
+
+static void glcdDrawBresenhamY(int16_t p1x, int16_t p1y, int16_t p2x, int16_t p2y,
+                               void (*drawPx)(const uint8_t, const uint8_t)) {
+  int16_t xdiff;
+  int8_t xIncrease;
+  if (p2x > p1x) {
+    xdiff = p2x - p1x;
+    xIncrease = 1;
+  } else {
+    xdiff = p1x - p2x;
+    xIncrease = -1;
+  }
+
+  const int16_t ydiff = p2y - p1y;
+  int16_t diff = 2 * xdiff - ydiff;
+
+  for (int16_t x = p1x, y = p1y; y <= p2y; ++y) {
+    drawPx(x, y);
+    if (diff > 0) {
+      x += xIncrease;
+      diff -= 2 * ydiff;
+    }
+    diff += 2 * xdiff;
+  }
+}
+
 /** \brief          Draws a line from p1 to p2 using a given drawing function.
     \param p1       Start point.
     \param p2       End point.
     \param drawPx   Drawing function. Should be setPixelGLCD, clearPixelGLCD or invertPixelGLCD.
 */
-void glcdDrawLine(const xy_point p1, const xy_point p2,
-                  void (*drawPx)(const uint8_t, const uint8_t)) {
+void glcdDrawLine(xy_point p1, xy_point p2, void (*drawPx)(const uint8_t, const uint8_t)) {
 
-  uint8_t x = p1.x, y = p1.y, x2 = p2.x, y2 = p2.y;
+  // inspired by https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+  // and https://tuwel.tuwien.ac.at/mod/forum/discuss.php?d=126640
 
-  uint8_t dx1 = 0, dy1 = 0, dx2 = 0, dy2 = 0;
+  uint8_t ydiff = p1.y > p2.y ? p1.y - p2.y : p2.y - p1.y;
+  uint8_t xdiff = p1.x > p2.x ? p1.x - p2.x : p2.x - p1.x;
 
-  uint8_t w = x2 - x;
-  if (x2 > x) {
-    dx1 = 1;
-    dx2 = 1;
-  } else if (x2 < x) {
-    w = x - x2;
-    dx1 = -1;
-    dx2 = -1;
-  }
+  xy_point temp;
 
-  uint8_t h = y2 - y;
-  if (y2 > y) {
-    dy1 = 1;
-  } else if (y2 < y) {
-    h = y - y2;
-    dy1 = -1;
-  }
-
-  uint8_t longest = w;
-  uint8_t shortest = h;
-  if (!(longest > shortest)) {
-    longest = h;
-    shortest = w;
-    if (y2 > y) {
-      dy2 = 1;
-    } else if (y2 < y) {
-      dy2 = -1;
+  if (ydiff < xdiff) {
+    // xdiff is longer than ydiff
+    if (p1.x > p2.x) {
+      temp = p1;
+      p1 = p2;
+      p2 = temp;
     }
-    dx2 = 0;
-  }
-  int numerator = longest >> 1;
-  for (int i = 0; i <= longest; i++) {
-    drawPx(x, y);
-    numerator += shortest;
-    if (!(numerator < longest)) {
-      numerator -= longest;
-      x += dx1;
-      y += dy1;
-    } else {
-      x += dx2;
-      y += dy2;
+    glcdDrawBresenhamX(p1.x, p1.y, p2.x, p2.y, drawPx);
+
+  } else {
+    // ydiff is longer than xdiff
+    if (p1.y > p2.y) {
+      temp = p1;
+      p1 = p2;
+      p2 = temp;
     }
+    glcdDrawBresenhamY(p1.x, p1.y, p2.x, p2.y, drawPx);
   }
 }
 
