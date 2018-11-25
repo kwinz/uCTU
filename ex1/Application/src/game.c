@@ -17,6 +17,7 @@ static uint16_t ticks = 0;
 static uint8_t yshift = 0;
 static xy_point ball = {5, 50};
 static uint8_t level = 0;
+uint16_t score = 0;
 
 typedef struct lry_point_t {
   uint8_t l, r, y;
@@ -37,6 +38,7 @@ void gameStart(void) {
   yshift = 0;
   ball = (xy_point){.x = 64, .y = 50};
   level = 0;
+  score = 0;
 
   memset(obstacles, 0, 3 * sizeof(lry_point));
   obstacles[0].y = 10;
@@ -218,6 +220,10 @@ void gameTick(void) {
         obstacles[i].active = true;
       }
     }
+  }
+
+  if (ticks % 100 == 0) {
+    score++;
   }
 
   if (ticks % 1000 == 0) {

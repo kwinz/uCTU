@@ -43,11 +43,12 @@ void setRumblerCallback(const uint8_t wii, const error_t status) {
   // wiiUserSetRumbler(wii, false, &setRumblerCallback);
 }
 
-// 1 = 2
-// 2 = 1
-// 4 = B
-// 8 = A
-// 16 = -
+#define BUTTON_1_BV 2
+#define BUTTON_2_BV 1
+#define BUTTON_A_BV 8
+#define BUTTON_B_BV 4
+#define BUTTON_MIN_BV 16
+
 volatile uint16_t buttonStatesLast;
 volatile uint16_t buttonsPressed;
 
@@ -114,7 +115,14 @@ void setup() {
   start16BitTimer(TIMER3, 4500U, &newTick);
 }
 
-static void songOver(Song_t song) { songPlay(song, &songOver); }
+static void songOver(Song_t song) {
+  if (SONG_IMPRESSIVE == song) {
+    songPlay(SONG_NOSONG, &songOver);
+  } else {
+    // repeat
+    songPlay(song, &songOver);
+  }
+}
 
 void background() {
   PORTL = getCurrentSong();
@@ -134,17 +142,14 @@ void background() {
 
   cli();
   if (buttonsPressed & 1) {
-    buttonsPressed &= ~1;
+    buttonsPressed = 0;
     sei();
     Song_t currentSong = getCurrentSong();
     if (currentSong != SONG_NOSONG) {
       songPlay(++currentSong, &songOver);
     }
-  }
-
-  cli();
-  if (buttonsPressed & 2) {
-    buttonsPressed &= ~2;
+  } else if (buttonsPressed & 2) {
+    buttonsPressed = 0;
     sei();
     Song_t currentSong = getCurrentSong();
     if (currentSong != SONG_BATMAN) {
@@ -155,6 +160,28 @@ void background() {
 
 const char macFormat_p[] PROGMEM = "%02x:%02x:%02x:%02x:%02x:%02x";
 const char presSync_p[] PROGMEM = "Press sync (or any)\nkey to connect!\0";
+const char scoreFormat_p[] PROGMEM = "# %" PRIu8 ": %" PRIu16;
+
+#define NUM_HIGHSCORES 5
+uint16_t highscores[NUM_HIGHSCORES] = {0};
+
+void insertHighScore(const uint16_t highscore) {
+  uint8_t i = 0;
+  uint16_t temp;
+  for (; i < NUM_HIGHSCORES; i++) {
+    if (highscore > highscores[i]) {
+      temp = highscores[i];
+      highscores[i] = highscore;
+      i++;
+      for (; i < NUM_HIGHSCORES; i++) {
+        // swap
+        highscores[i] ^= temp;
+        temp ^= highscores[i];
+        highscores[i] ^= temp;
+      }
+    }
+  }
+}
 
 int main(void) {
   setup();
@@ -166,7 +193,7 @@ int main(void) {
       sei();
 
       if (HAVE_MP3_BOARD) {
-        songPlay(SONG_GLORY, &songOver);
+        songPlay(SONG_BUBBLE, &songOver);
       }
 
       glcdFillScreen(GLCD_CLEAR);
@@ -189,24 +216,38 @@ int main(void) {
     } break;
     case MENU_PAINT: {
       sei();
+      if (HAVE_MP3_BOARD) {
+        songPlay(SONG_HIMALAYAS, &songOver);
+      }
       glcdSetYShift(0);
       glcdFillScreen(GLCD_CLEAR);
       xy_point c = {20, 20};
-      glcdDrawText("New game: A", c, &Standard5x7, &glcdSetPixel);
+      glcdDrawText("Falling Ball!", c, &Standard5x7, &glcdSetPixel);
+      c.y += Standard5x7.lineSpacing;
+      glcdDrawText("Continue/Game: A", c, &Standard5x7, &glcdSetPixel);
+      c.y += Standard5x7.lineSpacing;
+      glcdDrawText("Highscore: -", c, &Standard5x7, &glcdSetPixel);
+      c.y += Standard5x7.lineSpacing;
+      glcdDrawText("Previous Track: 1", c, &Standard5x7, &glcdSetPixel);
+      c.y += Standard5x7.lineSpacing;
+      glcdDrawText("Next Track: 2", c, &Standard5x7, &glcdSetPixel);
       gamestate = MENU;
       wiiUserSetRumbler(0, true, &setRumblerCallback);
       rumblingTicks = 400;
     } break;
     case MENU: {
-      sei();
-      if (buttonsPressed & 8) {
-        buttonsPressed &= ~8;
+      if (buttonsPressed & BUTTON_A_BV) {
+        buttonsPressed = 0;
+        sei();
         gamestate = PLAYING_ENTER;
-        PORTL++;
+      }
+      if (buttonsPressed & BUTTON_MIN_BV) {
+        buttonsPressed = 0;
+        sei();
+        gamestate = HIGHSCORE_PAINT;
       }
     } break;
     case PLAYING_ENTER: {
-
       if (HAVE_MP3_BOARD) {
         songPlay(SONG_ZGAGA, &songOver);
       }
@@ -222,23 +263,51 @@ int main(void) {
     } break;
     case DEAD_ENTER: {
       sei();
+      if (HAVE_MP3_BOARD) {
+        songPlay(SONG_IMPRESSIVE, &songOver);
+      }
       glcdSetYShift(0);
       glcdFillScreen(GLCD_CLEAR);
       xy_point c = {20, 20};
-      glcdDrawText("u ded", c, &Standard5x7, &glcdSetPixel);
+      glcdDrawText("Your score was:", c, &Standard5x7, &glcdSetPixel);
+      c.x = 40;
+      c.y = 30;
+      insertHighScore(score);
+      glcdDrawText(int2string(score), c, &Standard5x7, &glcdSetPixel);
       gamestate = DEAD;
       wiiUserSetRumbler(0, true, &setRumblerCallback);
       rumblingTicks = 400;
 
     } break;
     case DEAD: {
-      sei();
+      if (buttonsPressed & BUTTON_A_BV) {
+        buttonsPressed = 0;
+        sei();
+        gamestate = MENU_PAINT;
+      }
     } break;
     case HIGHSCORE_PAINT: {
       sei();
+      glcdSetYShift(0);
+      glcdFillScreen(GLCD_CLEAR);
+      xy_point c = {10, 10};
+      glcdDrawText("HIGHSCORES", c, &Standard5x7, &glcdSetPixel);
+      gamestate = HIGHSCORE;
+      {
+        char scoreString[30];
+        for (uint8_t i = 1; i <= NUM_HIGHSCORES; i++) {
+          c.y += Standard5x7.lineSpacing;
+          sprintf_P(scoreString, scoreFormat_p, i, highscores[i - 1]);
+          glcdDrawText(scoreString, c, &Standard5x7, &glcdSetPixel);
+        }
+      }
     } break;
     case HIGHSCORE: {
-      sei();
+      if (buttonsPressed & BUTTON_A_BV) {
+        buttonsPressed = 0;
+        sei();
+        gamestate = MENU_PAINT;
+      }
     } break;
     default:
       sei();
