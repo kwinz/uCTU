@@ -1,6 +1,7 @@
 #include "game.h"
 #include "font.h"
 #include "glcd.h"
+#include "hal_glcd.h"
 #include "lcd.h"
 #include "rand.h"
 #include "tools.h"
@@ -27,7 +28,6 @@ typedef struct lry_point_t {
 #define OBSTACLE_COUNT 3
 
 static lry_point obstacles[OBSTACLE_COUNT];
-// obstacle1 = {0, 0, 30, false}, obstacle2 = {0, 0, 50, false};
 
 // static functions
 
@@ -46,60 +46,18 @@ void gameStart(void) {
   obstacles[2].y = 50;
 }
 
-// callbacks, ISRs and/or public interfaces
-
-/**
- * This function expects p1 to be the upper left corner
- * and p2 to be the lower right corner
- *
- */
-void glcdFillRectWrappingSafe(xy_point p1, xy_point p2,
-                              void (*drawPx)(const uint8_t, const uint8_t)) {
-
-  // const uint8_t orig_p1y = p1.y;
-  const uint8_t orig_p2y = p2.y;
-  /*
-  if (p1.y > 80) {
-
-    glcdFillRect(p1, p2, drawPx);
-
-    glcdFillRect(p1, p2, drawPx);
-  } else
-  */
-  if (p2.y > 63) {
-    p2.y = 63;
-    glcdFillRect(p1, p2, drawPx);
-    p1.y = 0;
-    p2.y = orig_p2y % 64;
-    glcdFillRect(p1, p2, drawPx);
-  } else {
-    glcdFillRect(p1, p2, drawPx);
-  }
-}
-
 void rcvAccel(const uint8_t wii, const uint16_t x, const uint16_t y, const uint16_t z) {
   // https://wiibrew.org/wiki/Wiimote#Accelerometer
   // Note that X has 10 bits of precision, while Y and Z only have 9.
 
-  // PORTL = hi8(y);
-
-  // dispUint8(hi8(x), 0, 0);
-  // fail();
-
   cli();
-
   if (hi8(y) == 1) {
-    // ball.x -= 1; //((x & 0xFF) / 128);
     moveRight = false;
     speed = ((y)&0x0ff);
   } else {
-    // ball.x += 1; //((x & 0xFF) / 128);
     moveRight = true;
     speed = ~((y)&0x0ff);
   }
-
-  // PORTK = speed;
-
   sei();
 }
 
@@ -109,21 +67,21 @@ static inline void drawBallOptimized(xy_point ball, void (*drawPx)(const uint8_t
   drawPx(x + 2, y);
 
   y++;
-  y %= 64;
+  y %= GLC_HEIGHT;
   drawPx(x, y);
   drawPx(x + 1, y);
   drawPx(x + 2, y);
   drawPx(x + 3, y);
 
   y++;
-  y %= 64;
+  y %= GLC_HEIGHT;
   drawPx(x, y);
   drawPx(x + 1, y);
   drawPx(x + 2, y);
   drawPx(x + 3, y);
 
   y++;
-  y %= 64;
+  y %= GLC_HEIGHT;
   drawPx(x + 1, y);
   drawPx(x + 2, y);
 }
@@ -142,7 +100,7 @@ void gameTick(void) {
   drawBallOptimized(ball, &glcdClearPixel);
 
   const uint8_t top = yshift;
-  const uint8_t bottom = (top + 63) % 64;
+  const uint8_t bottom = (top + 63) % GLC_HEIGHT;
 
   // move ball horizontally
   bool moveball = false;
@@ -175,20 +133,20 @@ void gameTick(void) {
     bool colided = false;
     for (uint8_t i = 0; i < OBSTACLE_COUNT; ++i) {
       const lry_point obstacle = obstacles[i];
-      if (likely(obstacle.active) && (ball.y + 6) % 64 == obstacle.y && obstacle.l < ball.x &&
-          ball.x < obstacle.r) {
+      if (likely(obstacle.active) && (ball.y + 6) % GLC_HEIGHT == obstacle.y &&
+          obstacle.l < ball.x && ball.x < obstacle.r) {
         colided = true;
         continue;
       }
     }
 
-    if ((ball.y + 6) % 64 == bottom) {
+    if ((ball.y + 6) % GLC_HEIGHT == bottom) {
       colided = true;
     }
 
     if (!colided) {
       ball.y++;
-      ball.y %= 64;
+      ball.y %= GLC_HEIGHT;
     }
 
     // are we dead?
@@ -198,21 +156,19 @@ void gameTick(void) {
     }
   }
 
-  // draw new ball
-  drawBallOptimized(ball, &glcdSetPixel);
-
+  // shit vertically and update obstacles
   if (ticks % (10 - min(level, 7)) == 0) {
     glcdDrawHorizontal(yshift, &glcdClearPixel);
     yshift++;
-    yshift %= 64;
+    yshift %= GLC_HEIGHT;
     glcdSetYShift(yshift);
     const uint8_t top = yshift;
-    const uint8_t bottom = (top + 63) % 64;
+    const uint8_t bottom = (top + 63) % GLC_HEIGHT;
 
     for (uint8_t i = 0; i < OBSTACLE_COUNT; ++i) {
       if (obstacles[i].y == top) {
-        const uint8_t left = rand16() % 64;
-        const uint8_t right = rand16() % 64 + 63;
+        const uint8_t left = rand16() % GLC_HEIGHT;
+        const uint8_t right = rand16() % GLC_HEIGHT + 63;
         obstacles[i].l = left;
         obstacles[i].r = right;
         obstacles[i].y = bottom;
@@ -222,7 +178,10 @@ void gameTick(void) {
     }
   }
 
-  if (ticks % 100 == 0) {
+  // draw new ball
+  drawBallOptimized(ball, &glcdSetPixel);
+
+  if (ticks % 10 == 0) {
     score++;
   }
 
