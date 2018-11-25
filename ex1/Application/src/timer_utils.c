@@ -20,40 +20,6 @@ byte. For a 16-bit read, the low byte must be read before the high byte
 Note by Markus: atomic TCNTn, OCRnA/B/C or ICRn reads have to be done with interrupts disabled.
 */
 
-/*
-; timer counter control register A
-; start clock with mode CTC
-; WGM1{3:0} = 0100	(CTC)
-; CS1{2:0} = 100	(prescaler)
-lds	16, TCCR1A
-andi temp, ~((1<<WGM10)|(1<<WGM11))
-sts TCCR1A, temp
-
-lds temp, TCCR1B
-ori temp, (1<<WGM12) | (1<<CS12)
-andi temp, ~((1<<WGM13) | (1<<CS11) | (1<<CS10))
-sts TCCR1B, temp
-
-; output compare register A
-ldi temp, hi8(1250)
-ldi r17, lo8(1250)
-sts OCR1AH, temp
-sts OCR1AL, r17
-
-; timer counter
-ldi temp, 0x00
-sts TCNT1H, temp
-sts TCNT1L, temp
-
-; timer mask
-lds temp, TIMSK1
-ori temp, (1<<OCIE1A)
-sts TIMSK1, temp
-
-sei
-
-*/
-
 // timer0,2: 8 bit
 // timer1,3,4,5: 16 bit
 
@@ -81,49 +47,6 @@ f  = ----------------------
 wherby N is the prescaler
 
 */
-
-// we have to be able to make 5ms
-// 16.6ms
-
-void setup8BitTimer(void) {
-  cli();
-
-  // setup register A
-  {
-    // clear all bits except for the reserved ones
-    // we don't want to use any compare match outputs
-    uint8_t tccr2A_target = TCCR2A & ((1 < 2) | (1 < 3));
-    // use CTC mode; see page 131 of manual
-    tccr2A_target |= (1 << WGM01);
-    TCCR2A = tccr2A_target;
-  }
-
-  // setup register B
-  {
-    uint8_t tccr2B_target = TCCR2B;
-    // clear WGM02 for CTC
-    tccr2B_target &= ~(1 << WGM02);
-    /*
-    CS02 CS01 CS00
-    0 0 1         clk I/O /(No prescaling)
-    0 1 0         clk I/O /8 (From prescaler)
-    0 1 1         clk I/O /64 (From prescaler)
-    1 0 0         clk I/O /256 (From prescaler)
-    1 0 1         clk I/O /1024 (From prescaler)
-    */
-    // no prescaling
-    tccr2B_target |= (1 << CS00);
-    TCCR2B = tccr2B_target;
-  }
-
-  { OCR0A = 100; }
-
-  TCNT0 = 0;
-
-  // FIXME: unfinshed
-
-  sei();
-}
 
 typedef enum { Prescaler8, Prescaler1024 } Prescaler_t;
 
