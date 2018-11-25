@@ -12,12 +12,12 @@
  * 26. ADC, page 275
  * The device also supports 16/32 differential voltage input combinations. Four of the differential
 inputs (ADC1 & ADC0, ADC3 & ADC2, ADC9 & ADC8 and ADC11 & ADC10) are equipped with
-a programmable gain stage, providing amplification steps of 0 dB (1×), 20 dB (10×) or 46 dB
-(200×) on the differential input voltage before the ADC conversion. The 16 channels are split in
+a programmable gain stage, providing amplification steps of 0 dB (1x), 20 dB (10x) or 46 dB
+(200x) on the differential input voltage before the ADC conversion. The 16 channels are split in
 two sections of 8 channels where in each section seven differential analog input channels share
 a common negative terminal (ADC1/ADC9), while any other ADC input in that section can be
-selected as the positive input terminal. If 1× or 10× gain is used, 8 bit resolution can be
-expected. If 200× gain is used, 7 bit resolution can be expected.
+selected as the positive input terminal. If 1x or 10x gain is used, 8 bit resolution can be
+expected. If 200x gain is used, 7 bit resolution can be expected.
 
 
 In Single Conversion mode, always select the channel before starting the conversion. The chan-
@@ -33,7 +33,7 @@ racy due to the required settling time for the automatic offset cancellation cir
 should preferably disregard the first conversion result.
 
 ADMUX can be safely updated in the following ways:
-1! When ADATE (Bit 5 – ADATE: ADC Auto Trigger Enable) or ADEN is cleared. (Markus: they mean
+1! When ADATE (Bit 5 - ADATE: ADC Auto Trigger Enable) or ADEN is cleared. (Markus: they mean
 both?!)
 2. During conversion, minimum one ADC clock cycle after the trigger event.
 3! After a conversion, before the Interrupt Flag used as trigger source is cleared.
@@ -52,7 +52,7 @@ static volatile bool volumeMode = false;
 static void sampleRand(void) {
   // PORTH++;
   // for rand we use
-  // MUX5:0 001111  ADC3,ADC2 200× gain
+  // MUX5:0 001111  ADC3,ADC2 200x gain
   // write the 5 bits to ADMUX. ADCSRB is already set
   ADMUX = (ADMUX & 0xE0) | 0x0F;
 }
@@ -81,7 +81,7 @@ static void sampleADC() {
 
 void adcInit(void) {
 
-  // DIDR0 – Digital Input Disable Register 0
+  // DIDR0 - Digital Input Disable Register 0
   // turn off digital io on port F to save power (those are adc0-7 or PINF)
   DIDR0 = 0xFF;
 
@@ -91,7 +91,7 @@ void adcInit(void) {
   // conversions. (Markus: I decided not to use this)
   ADMUX = (1 << REFS0);
 
-  //– ACME – – MUX5 ADTS2 ADTS1 ADTS0
+  //- ACME - - MUX5 ADTS2 ADTS1 ADTS0
   // using Free Running mode for now, but "Timer/Counter1 Compare Match B" sounds interresting
   // set all bits to 0 except for reserved ones
   ADCSRB &= (1 << 7) | (1 << 5) | (1 << 4);

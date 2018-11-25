@@ -142,7 +142,7 @@ static void halGlcdTurnOn(const bool on) {
 }
 
 /*
-Initializes the microcontroller’s interface to the GLCD, reset and initializes of the display
+Initializes the microcontroller's interface to the GLCD, reset and initializes of the display
 controllers. After calling this function the GLCD is empty and ready for use.
 */
 uint8_t halGlcdInit(void) {

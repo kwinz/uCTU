@@ -6,7 +6,7 @@
 
 /**
  * Shift the LFSR to the right, shifting in the LSB of the parameter. Usually
- * not called directly; use the high−level functions below.
+ * not called directly; use the high-level functions below.
  *
  * Returns: The bit shifted out of the LFSR.
  */
@@ -23,9 +23,8 @@ void rand_feed(uint8_t in);
 uint8_t rand1();
 
 /**
- * Generate a random 16−bit number.
+ * Generate a random 16-bit number.
  */
 uint16_t rand16();
 
 #endif
-

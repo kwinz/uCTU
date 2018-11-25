@@ -42,7 +42,7 @@ Note by Markus: atomic TCNTn, OCRnA/B/C or ICRn reads have to be done with inter
 /*
         fclk_I/O
 f  = ----------------------
-       N ⋅ ( 1 + OCRnA )
+       N * ( 1 + OCRnA )
 
 wherby N is the prescaler
 
