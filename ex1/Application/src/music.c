@@ -6,6 +6,7 @@
 
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
+#include <string.h>
 
 const PROGMEM uint32_t songstarts[] = {
     3200000, 3590240, 3639392, 4030368, 4360416, 4385760, 4675648, 5004992, 5052096, 5184448,
@@ -56,12 +57,20 @@ void songInit(void) {
  */
 void songPlay(const Song_t song, void (*songOver)(const Song_t song)) {
   if (song != SONG_NOSONG) {
+    // mp3Init(&dataRequestCallback);
     const uint32_t songStart = pgm_read_dword(songstarts + song);
     songEnd = songStart + pgm_read_dword(songdurations + song);
     byteAddress = songStart;
+
+    // sending 0 buffer slightly improves artefacts on song change
+    if (!mp3Busy()) {
+      memset(buffer, 0, sizeof(buffer));
+      mp3SendMusic(buffer);
+    }
   }
   currentSong = song;
   songOverCallback = songOver;
+
   // mp3SetVolume(0xff);
 }
 
@@ -70,6 +79,8 @@ void songPlay(const Song_t song, void (*songOver)(const Song_t song)) {
  * are not monopolizing the CPU.
  */
 #define MAX_SUCCESSIVE_COPIES_PER_TICK 5
+
+Song_t getCurrentSong(void) { return currentSong; }
 
 /**
  * Needs to be called regularly (5ms?) to keep playing a song set with songPlay.

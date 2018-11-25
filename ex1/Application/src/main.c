@@ -43,21 +43,19 @@ void setRumblerCallback(const uint8_t wii, const error_t status) {
   // wiiUserSetRumbler(wii, false, &setRumblerCallback);
 }
 
+// 1 = 2
+// 2 = 1
+// 4 = B
+// 8 = A
+// 16 = -
+volatile uint16_t buttonStatesLast;
+volatile uint16_t buttonsPressed;
+
 void rcvButton(const uint8_t wii, const uint16_t buttonStates) {
 
-  if (buttonStates & 8) {
-    gamestate = PLAYING_ENTER;
-    PORTL++;
-  }
-  // 1 = 2
-  // 2 = 1
-  // 4 = B
-  // 8 = A
-  // 16 = -
-  // if (buttonStates & 4) {
-  //  rumbler = !rumbler;
-  //  wiiUserSetRumbler(wii, rumbler, &setRumblerCallback);
-  //}
+  const uint16_t newButtonPresses = (buttonStates ^ buttonStatesLast) & buttonStates;
+  buttonsPressed |= newButtonPresses;
+  buttonStatesLast = buttonStates;
 }
 
 static int16_t rumblingTicks = -1;
@@ -116,7 +114,11 @@ void setup() {
   start16BitTimer(TIMER3, 4500U, &newTick);
 }
 
+static void songOver(Song_t song) { songPlay(song, &songOver); }
+
 void background() {
+  PORTL = getCurrentSong();
+
   if (HAVE_MP3_BOARD) {
     songTick();
   }
@@ -129,9 +131,27 @@ void background() {
       rumblingTicks = -1;
     }
   }
-}
 
-static void songOver(Song_t song) { songPlay(song, &songOver); }
+  cli();
+  if (buttonsPressed & 1) {
+    buttonsPressed &= ~1;
+    sei();
+    Song_t currentSong = getCurrentSong();
+    if (currentSong != SONG_NOSONG) {
+      songPlay(++currentSong, &songOver);
+    }
+  }
+
+  cli();
+  if (buttonsPressed & 2) {
+    buttonsPressed &= ~2;
+    sei();
+    Song_t currentSong = getCurrentSong();
+    if (currentSong != SONG_BATMAN) {
+      songPlay(--currentSong, &songOver);
+    }
+  }
+}
 
 const char macFormat_p[] PROGMEM = "%02x:%02x:%02x:%02x:%02x:%02x";
 const char presSync_p[] PROGMEM = "Press sync (or any)\nkey to connect!\0";
@@ -179,9 +199,14 @@ int main(void) {
     } break;
     case MENU: {
       sei();
+      if (buttonsPressed & 8) {
+        buttonsPressed &= ~8;
+        gamestate = PLAYING_ENTER;
+        PORTL++;
+      }
     } break;
     case PLAYING_ENTER: {
-      sei();
+
       if (HAVE_MP3_BOARD) {
         songPlay(SONG_ZGAGA, &songOver);
       }

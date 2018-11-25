@@ -29,3 +29,4 @@ typedef enum Songs {
 void songInit(void);
 void songPlay(const Song_t song, void (*songOver)(const Song_t song));
 void songTick(void);
+Song_t getCurrentSong(void);
