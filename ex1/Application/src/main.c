@@ -161,6 +161,13 @@ void background() {
 const char macFormat_p[] PROGMEM = "%02x:%02x:%02x:%02x:%02x:%02x";
 const char presSync_p[] PROGMEM = "Press sync (or any)\nkey to connect!\0";
 const char scoreFormat_p[] PROGMEM = "# %" PRIu8 ": %" PRIu16;
+const char title_p[] PROGMEM = "Falling Ball!";
+const char continueA_p[] PROGMEM = "Continue/Game: A";
+const char highScore_p[] PROGMEM = "Highscore: -";
+const char previous_p[] PROGMEM = "Previous Track: 1";
+const char next_p[] PROGMEM = "Next Track: 2";
+const char congratulations_p[] PROGMEM = "Your score was:";
+const char highscoreTitle_p[] PROGMEM = "HIGHSCORES";
 
 #define NUM_HIGHSCORES 5
 uint16_t highscores[NUM_HIGHSCORES] = {0};
@@ -202,7 +209,7 @@ int main(void) {
       glcdDrawTextPgm(presSync_p, c, &Standard5x7, &glcdSetPixel);
       c.y = 30;
       {
-        // buffer of 6 characters + '/0' byte, see mac_format format string
+        // buffer of 6 characters + '/0' byte, see macFormat_p format string
         char macString[6 * 3 + 1];
         sprintf_P(macString, macFormat_p, _mac[0][0], _mac[0][1], _mac[0][2], _mac[0][3],
                   _mac[0][4], _mac[0][5]);
@@ -221,16 +228,16 @@ int main(void) {
       }
       glcdSetYShift(0);
       glcdFillScreen(GLCD_CLEAR);
-      xy_point c = {20, 20};
-      glcdDrawText("Falling Ball!", c, &Standard5x7, &glcdSetPixel);
+      xy_point c = {10, 10};
+      glcdDrawTextPgm(title_p, c, &Standard5x7, &glcdSetPixel);
+      c.y += Standard5x7.lineSpacing * 2;
+      glcdDrawTextPgm(continueA_p, c, &Standard5x7, &glcdSetPixel);
       c.y += Standard5x7.lineSpacing;
-      glcdDrawText("Continue/Game: A", c, &Standard5x7, &glcdSetPixel);
+      glcdDrawTextPgm(highScore_p, c, &Standard5x7, &glcdSetPixel);
       c.y += Standard5x7.lineSpacing;
-      glcdDrawText("Highscore: -", c, &Standard5x7, &glcdSetPixel);
+      glcdDrawTextPgm(previous_p, c, &Standard5x7, &glcdSetPixel);
       c.y += Standard5x7.lineSpacing;
-      glcdDrawText("Previous Track: 1", c, &Standard5x7, &glcdSetPixel);
-      c.y += Standard5x7.lineSpacing;
-      glcdDrawText("Next Track: 2", c, &Standard5x7, &glcdSetPixel);
+      glcdDrawTextPgm(next_p, c, &Standard5x7, &glcdSetPixel);
       gamestate = MENU;
       wiiUserSetRumbler(0, true, &setRumblerCallback);
       rumblingTicks = 400;
@@ -269,9 +276,9 @@ int main(void) {
       glcdSetYShift(0);
       glcdFillScreen(GLCD_CLEAR);
       xy_point c = {20, 20};
-      glcdDrawText("Your score was:", c, &Standard5x7, &glcdSetPixel);
-      c.x = 40;
-      c.y = 30;
+      glcdDrawTextPgm(congratulations_p, c, &Standard5x7, &glcdSetPixel);
+      c.x = 53;
+      c.y = 45;
       insertHighScore(score);
       glcdDrawText(int2string(score), c, &Standard5x7, &glcdSetPixel);
       gamestate = DEAD;
@@ -291,8 +298,9 @@ int main(void) {
       glcdSetYShift(0);
       glcdFillScreen(GLCD_CLEAR);
       xy_point c = {10, 10};
-      glcdDrawText("HIGHSCORES", c, &Standard5x7, &glcdSetPixel);
+      glcdDrawTextPgm(highscoreTitle_p, c, &Standard5x7, &glcdSetPixel);
       gamestate = HIGHSCORE;
+      c.y += Standard5x7.lineSpacing;
       {
         char scoreString[30];
         for (uint8_t i = 1; i <= NUM_HIGHSCORES; i++) {
