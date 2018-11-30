@@ -144,7 +144,7 @@ void start16BitTimer(Timer16Bit_t timer, uint32_t usec, void (*periodicCallback)
   sei();
 }
 
-ISR(TIMER1_COMPA_vect) {
+ISR(TIMER1_COMPA_vect,ISR_BLOCK) {
   periodicCallback1();
   // TIMSK1 &= ~_BV(OCIE1A);
   sei();

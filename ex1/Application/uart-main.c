@@ -41,20 +41,11 @@ void main(void){
     PORTA=0xAA;
     DDRA = DDRB = 0xFF;
     DDRC =0;
-
-    
-    ADMUX |= _BV(REFS0)|_BV(MUX0);
-    ADMUX &= ~(_BV(REFS1)|_BV(ADLAR)|_BV(MUX4)|_BV(MUX3)|_BV(MUX2)|_BV(MUX1));
-
-    //ADTS = auto trigger
-    //ADCSRB |= _BV();
-    ADCSRB &= ~(_BV(MUX5)|_BV(ADTS2)|_BV(ADTS1)|_BV(ADTS0));
-
-    ADCSRA &= ~(_BV(ADATE));
-    ADCSRA |= _BV(ADPS2)|_BV(ADPS1)|_BV(ADPS0)|_BV(ADIE)|_BV(ADEN)|_BV(ADSC);
-
     setupTimer();
     setupUART();
+    
+
+PORTB++;
 
     sei();
     while(true);
@@ -62,6 +53,10 @@ void main(void){
 
 ISR(TIMER0_COMPA_vect){
     PORTA++;
+    UDR0 = 'a';
+    UDR0 = 'a';
+    UDR0 = 'a';
+    UDR0 = 'a';
 }
 
 volatile uint8_t data=0;
@@ -71,7 +66,7 @@ ISR(USART0_RX_vect){
     data = UDR0 +1;
     if( !(UCSR0A & _BV(UDRE0)) ){
         sendData=true;
-        //PORTB++;
+        PORTB++;
         return; 
     }
         
@@ -85,10 +80,4 @@ ISR(USART0_TX_vect){
     }
         
     return; 
-}
-
-ISR(ADC_vect){
-    PORTB=ADC>>2;
-    ADCSRA |= _BV(ADSC);
-    //while(true);
 }

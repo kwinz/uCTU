@@ -21,21 +21,27 @@ SOURCES  := $(wildcard $(SRCDIR)/*.c)
 #INCLUDES := $(wildcard $(SRCDIR)/*.h)
 OBJECTS  := $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 
-.PHONY: all clean install
+.PHONY: all clean install main
 
-all: $(EXEC)
+all: main
 
 
-$(EXEC): $(OBJECTS)
-	@$(LD) $(OBJECTS) libs/lcd.o $(CFLAGS) $(LDFLAGS) -o $(BINDIR)/$@
-	@echo "Linking complete!"
+#$(EXEC): $(OBJECTS)
+#	@$(LD) $(OBJECTS) libs/lcd.o $(CFLAGS) $(LDFLAGS) -o $(BINDIR)/$@
+#	@echo "Linking complete!"
 
-$(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
-	@$(CC) $(CFLAGS) $(CCFLAGS) $(CPPFLAGS)  -c $< -o $@
-	@echo "Compiled "$<" successfully!"
+#$(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
+#	@$(CC) $(CFLAGS) $(CCFLAGS) $(CPPFLAGS)  -c $< -o $@
+#	@echo "Compiled "$<" successfully!"
 
-install: $(EXEC)
-	$(AVRPROG2) --flash w:$(BINDIR)/$<
+main: build/main.o
+	@$(LD) build/main.o $(CFLAGS) $(LDFLAGS) -o $(BINDIR)/main.elf
+
+build/main.o: src/main.c
+	@$(CC) $(CFLAGS) $(CCFLAGS) $(CPPFLAGS)  -c $< -o build/main.o
+
+install: all
+	$(AVRPROG2) --flash w:$(BINDIR)/main.elf
 
 clean:
 	rm -f $(BINDIR)/* $(OBJDIR)/*
